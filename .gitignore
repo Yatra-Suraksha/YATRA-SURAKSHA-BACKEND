@@ -36,3 +36,6 @@ coverage/
 .cache/
 .tmp/
 .log
+
+# Firebase service account file
+config/yatrasuraksha-firebase-adminsdk-fbsvc-2cdfc2478f.json
