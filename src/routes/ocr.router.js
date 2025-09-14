@@ -5,11 +5,9 @@ import { verifyFirebaseToken } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// Configure multer for file uploads
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-    // Accept only specific image formats that Azure OCR supports
     const allowedMimeTypes = [
         'image/jpeg',
         'image/jpg', 
@@ -31,13 +29,12 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 10 * 1024 * 1024, // 10MB limit
-        files: 1 // Only one file at a time
+        fileSize: 10 * 1024 * 1024,
+        files: 1
     },
     fileFilter: fileFilter
 });
 
-// Error handling middleware for multer
 const handleUploadError = (err, req, res, next) => {
     if (err instanceof multer.MulterError) {
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -64,17 +61,12 @@ const handleUploadError = (err, req, res, next) => {
     next(err);
 };
 
-
-// router.use(verifyFirebaseToken);
-
-// POST /api/ocr/process - Process document and extract information
 router.post('/process', 
     upload.single('document'), 
     handleUploadError, 
     processDocument
 );
 
-// GET /api/ocr/health - Check OCR service health
 router.get('/health', (req, res) => {
     res.json({
         success: true,

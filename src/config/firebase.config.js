@@ -19,7 +19,6 @@ const initializeFirebase = () => {
             return firebaseApp;
         }
 
-        // Check if service account file exists
         if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
             const serviceAccountPath = join(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
             
@@ -31,7 +30,6 @@ const initializeFirebase = () => {
 
             const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
             
-            // Check if the service account has placeholder values
             if (serviceAccount.private_key.includes('YOUR_PRIVATE_KEY_HERE')) {
                 console.warn('Firebase service account file contains placeholder values.');
                 console.warn('Please replace with actual Firebase service account credentials.');
@@ -46,7 +44,6 @@ const initializeFirebase = () => {
             console.log('Firebase Admin initialized successfully');
             return firebaseApp;
         }
-        // For production: use environment variables
         else if (process.env.FIREBASE_PRIVATE_KEY) {
             const serviceAccount = {
                 type: "service_account",
@@ -78,8 +75,6 @@ const initializeFirebase = () => {
         return null;
     }
 };
-
-// Initialize Firebase
 const firebase = initializeFirebase();
 
 export default firebase;

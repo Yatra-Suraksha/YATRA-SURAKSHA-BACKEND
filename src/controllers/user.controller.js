@@ -1,4 +1,3 @@
-// Simple token verification - no database operations
 export const verifyToken = async (req, res) => {
     try {
    
