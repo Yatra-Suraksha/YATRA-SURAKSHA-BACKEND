@@ -3,7 +3,7 @@ import {
     verifyToken,
     getCurrentUser
 } from "../controllers/user.controller.js";
-import { verifyFirebaseToken } from "../utils/auth.middleware.js";
+import { verifyFirebaseToken } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

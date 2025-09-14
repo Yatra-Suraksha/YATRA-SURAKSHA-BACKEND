@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/Yatra-Suraksha/YATRA-SURAKSHA-BACKEND#readme",
   "dependencies": {
+    "@azure/cognitiveservices-computervision": "^8.2.0",
+    "@azure/ms-rest-azure-js": "^2.1.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
