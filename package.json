@@ -1,18 +1,19 @@
 {
   "name": "yatra-suraksha-backend",
   "version": "1.0.0",
-  "description": "hello project",
-  "main": "index.js",
+  "description": "Smart Tourist Safety Monitoring & Incident Response System - Backend API",
+  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Yatra-Suraksha/YATRA-SURAKSHA-BACKEND.git"
   },
-  "author": "",
+  "author": "Yatra Suraksha Team",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Yatra-Suraksha/YATRA-SURAKSHA-BACKEND/issues"
@@ -21,15 +22,29 @@
   "dependencies": {
     "@azure/cognitiveservices-computervision": "^8.2.0",
     "@azure/ms-rest-azure-js": "^2.1.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.4.1",
     "express-validator": "^7.2.1",
     "firebase-admin": "^13.5.0",
+    "geolib": "^3.3.4",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.18.1",
-    "nodemon": "^3.1.10",
+    "node-cron": "^3.0.3",
+    "qrcode": "^1.5.4",
+    "redis": "^4.7.0",
+    "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "twilio": "^5.3.6",
+    "web3": "^4.15.0",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
