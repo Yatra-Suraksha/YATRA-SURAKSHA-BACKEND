@@ -1,0 +1,90 @@
+import { Router } from 'express';
+import multer from 'multer';
+import { processDocument } from '../controllers/ocr.controller.js';
+import { verifyFirebaseToken } from '../middlewares/auth.middleware.js';
+
+const router = Router();
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+
+const fileFilter = (req, file, cb) => {
+    // Accept only specific image formats that Azure OCR supports
+    const allowedMimeTypes = [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/bmp',
+        'image/tiff',
+        'image/tif'
+    ];
+    
+    console.log(`Uploaded file: ${file.originalname}, MIME type: ${file.mimetype}`);
+    
+    if (allowedMimeTypes.includes(file.mimetype.toLowerCase())) {
+        cb(null, true);
+    } else {
+        cb(new Error(`Unsupported file format: ${file.mimetype}. Supported formats: JPEG, PNG, BMP, TIFF`), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB limit
+        files: 1 // Only one file at a time
+    },
+    fileFilter: fileFilter
+});
+
+// Error handling middleware for multer
+const handleUploadError = (err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({
+                success: false,
+                message: 'File too large. Maximum size allowed is 10MB.'
+            });
+        }
+        if (err.code === 'LIMIT_FILE_COUNT') {
+            return res.status(400).json({
+                success: false,
+                message: 'Too many files. Please upload only one document at a time.'
+            });
+        }
+    }
+    
+    if (err.message.includes('Only image files')) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid file type. Please upload an image file (JPEG, PNG, WebP, etc.).'
+        });
+    }
+
+    next(err);
+};
+
+
+// router.use(verifyFirebaseToken);
+
+// POST /api/ocr/process - Process document and extract information
+router.post('/process', 
+    upload.single('document'), 
+    handleUploadError, 
+    processDocument
+);
+
+// GET /api/ocr/health - Check OCR service health
+router.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'OCR service is running',
+        timestamp: new Date().toISOString(),
+        services: {
+            azure: !!process.env.VISION_KEY && !!process.env.VISION_ENDPOINT,
+            upload: true
+        }
+    });
+});
+
+export default router;

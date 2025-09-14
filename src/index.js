@@ -9,6 +9,7 @@ import swaggerUi from 'swagger-ui-express'
 import swaggerSpecs from './config/swagger.config.js'
 import connectDB from './db/index.db.js'
 import userRouter from './routes/user.router.js'
+import ocrRouter from './routes/ocr.router.js'
 
 const app = express()
 
@@ -50,8 +51,8 @@ app.get('/', (req, res) => {
     })
 })
 
-
 app.use('/api/users', userRouter)
+app.use('/api/ocr', ocrRouter)
 
 
 app.use((req, res) => {

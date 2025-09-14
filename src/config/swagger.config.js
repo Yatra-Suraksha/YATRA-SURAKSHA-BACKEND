@@ -1,5 +1,3 @@
-import swaggerJsdoc from 'swagger-jsdoc';
-
 import swaggerJSDoc from 'swagger-jsdoc';
 
 const options = {
@@ -205,10 +203,102 @@ const options = {
                         }
                     }
                 }
+            },
+            '/api/ocr/process': {
+                post: {
+                    summary: 'Process document with OCR',
+                    description: 'Upload an Aadhaar card or passport image to extract name, DOB, address, and phone number',
+                    tags: ['OCR'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'multipart/form-data': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        document: {
+                                            type: 'string',
+                                            format: 'binary',
+                                            description: 'Document image file (JPEG, PNG, WebP)'
+                                        }
+                                    },
+                                    required: ['document']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Document processed successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            success: { type: 'boolean', example: true },
+                                            message: { type: 'string' },
+                                            data: {
+                                                type: 'object',
+                                                properties: {
+                                                    documentType: { type: 'string', enum: ['aadhaar', 'passport'] },
+                                                    extractedInfo: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            name: { type: 'string' },
+                                                            dob: { type: 'string' },
+                                                            address: { type: 'string' },
+                                                            phone: { type: 'string' },
+                                                            documentNumber: { type: 'string' }
+                                                        }
+                                                    },
+                                                    confidence: { type: 'number' }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/ocr/health': {
+                get: {
+                    summary: 'Check OCR service health',
+                    description: 'Check if OCR service is running and configured properly',
+                    tags: ['OCR'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'OCR service status',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        type: 'object',
+                                        properties: {
+                                            success: { type: 'boolean' },
+                                            message: { type: 'string' },
+                                            services: {
+                                                type: 'object',
+                                                properties: {
+                                                    azure: { type: 'boolean' },
+                                                    upload: { type: 'boolean' }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     },
-    apis: [], // No need to scan files since we're defining everything here
+    apis: [],
 };
 
 const specs = swaggerJSDoc(options);
