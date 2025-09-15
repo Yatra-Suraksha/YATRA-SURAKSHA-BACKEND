@@ -73,12 +73,16 @@ app.use((error, req, res, next) => {
 })
 
 const PORT = process.env.PORT || 3000
+const HOST = process.env.HOST || '0.0.0.0'
 
 
 
 connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server is running on http://localhost:${PORT}`)
+    app.listen(PORT, HOST, () => {
+        console.log(`🚀 Server is running on http://${HOST}:${PORT}`)
+        console.log(`📱 Local access: http://localhost:${PORT}`)
+        console.log(`🌐 Network access: http://<your-ip>:${PORT}`)
+        console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`)
     })
 }).catch((error) => {
     console.error("Failed to connect to the database:", error);

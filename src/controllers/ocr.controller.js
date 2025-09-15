@@ -26,10 +26,31 @@ export const processDocument = async (req, res) => {
 
     } catch (error) {
         console.error('OCR processing error:', error);
-        res.status(500).json({
+        
+        // Provide specific error messages based on error type
+        let statusCode = 500;
+        let errorMessage = 'Document processing failed';
+        
+        if (error.message.includes('Invalid image file format')) {
+            statusCode = 400;
+            errorMessage = 'Invalid image file format. Please upload a valid JPEG, PNG, BMP, or TIFF image.';
+        } else if (error.message.includes('preprocessing failed')) {
+            statusCode = 400;
+            errorMessage = 'Image processing failed. The file may be corrupted or in an unsupported format.';
+        } else if (error.message.includes('Azure')) {
+            statusCode = 503;
+            errorMessage = 'OCR service temporarily unavailable. Please try again later.';
+        }
+        
+        res.status(statusCode).json({
             success: false,
-            message: 'Document processing failed',
-            error: error.message
+            message: errorMessage,
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            details: process.env.NODE_ENV === 'development' ? {
+                originalName: req.file?.originalname,
+                mimeType: req.file?.mimetype,
+                size: req.file?.size
+            } : undefined
         });
     }
 };

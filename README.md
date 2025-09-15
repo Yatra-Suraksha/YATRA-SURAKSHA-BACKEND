@@ -26,6 +26,17 @@ A comprehensive backend system for ensuring tourist safety through blockchain-ba
    # Edit .env with your configuration
    ```
 
+   **Network Configuration:**
+   ```bash
+   # Bind to all network interfaces (default)
+   HOST=0.0.0.0
+   PORT=3000
+   
+   # Or bind to localhost only for development
+   HOST=localhost
+   PORT=3000
+   ```
+
 3. **Validate configuration (recommended)**
    ```bash
    npm run validate

@@ -6,8 +6,48 @@ class OCRService {
         this.client = computerVisionClient;
     }
 
+    // Validate file type using file signatures (magic numbers)
+    validateImageFile(buffer) {
+        if (!buffer || buffer.length < 4) {
+            return { isValid: false, detectedType: 'unknown' };
+        }
+
+        // Check file signatures (magic numbers)
+        const signatures = {
+            jpeg: [0xFF, 0xD8, 0xFF],
+            png: [0x89, 0x50, 0x4E, 0x47],
+            bmp: [0x42, 0x4D],
+            tiff_le: [0x49, 0x49, 0x2A, 0x00], // Little Endian
+            tiff_be: [0x4D, 0x4D, 0x00, 0x2A]  // Big Endian
+        };
+
+        // Check each signature
+        for (const [type, signature] of Object.entries(signatures)) {
+            let matches = true;
+            for (let i = 0; i < signature.length && i < buffer.length; i++) {
+                if (buffer[i] !== signature[i]) {
+                    matches = false;
+                    break;
+                }
+            }
+            if (matches) {
+                return { isValid: true, detectedType: type };
+            }
+        }
+
+        return { isValid: false, detectedType: 'unknown' };
+    }
+
     async preprocessImage(imageBuffer) {
         try {
+            // Validate file type first
+            const validation = this.validateImageFile(imageBuffer);
+            if (!validation.isValid) {
+                throw new Error(`Invalid image file format. Detected type: ${validation.detectedType}`);
+            }
+            
+            console.log(`📸 Detected image type: ${validation.detectedType}`);
+            
             const processedImage = await sharp(imageBuffer)
                 .resize(1200, null, { withoutEnlargement: true })
                 .jpeg({ quality: 95 })
@@ -16,7 +56,13 @@ class OCRService {
             return processedImage;
         } catch (error) {
             console.error('Image preprocessing failed:', error);
-            return imageBuffer;
+            // If Sharp fails but we detected a valid image type, try with original buffer
+            const validation = this.validateImageFile(imageBuffer);
+            if (validation.isValid) {
+                console.log('🔄 Using original buffer after preprocessing failed');
+                return imageBuffer;
+            }
+            throw error;
         }
     }
 
