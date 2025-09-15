@@ -54,3 +54,5 @@ fabric-network/*.block
 
 # Docker volumes and containers
 .fabricnetwork/
+
+run-tests.js

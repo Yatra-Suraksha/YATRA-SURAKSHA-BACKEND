@@ -4,14 +4,32 @@ dotenv.config()
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
 import swaggerUi from 'swagger-ui-express'
 import swaggerSpecs from './config/swagger.config.js'
 import connectDB from './db/index.db.js'
 import userRouter from './routes/user.router.js'
 import ocrRouter from './routes/ocr.router.js'
+import trackingRouter from './routes/tracking.router.js'
+import { initializeSocketIO } from './services/socket.service.js'
 
 const app = express()
+const server = createServer(app)
 
+
+// Initialize Socket.IO
+const io = new Server(server, {
+    cors: {
+        origin: process.env.CORS_ORIGIN || '*',
+        methods: ['GET', 'POST'],
+        credentials: true
+    },
+    transports: ['websocket', 'polling']
+})
+
+// Initialize Socket.IO handlers
+initializeSocketIO(io)
 
 app.use(helmet({
     contentSecurityPolicy: false, 
@@ -52,6 +70,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/users', userRouter)
 app.use('/api/ocr', ocrRouter)
+app.use('/api/tracking', trackingRouter)
 
 
 app.use((req, res) => {
@@ -78,11 +97,12 @@ const HOST = process.env.HOST || '0.0.0.0'
 
 
 connectDB().then(() => {
-    app.listen(PORT, HOST, () => {
+    server.listen(PORT, HOST, () => {
         console.log(`🚀 Server is running on http://${HOST}:${PORT}`)
         console.log(`📱 Local access: http://localhost:${PORT}`)
         console.log(`🌐 Network access: http://<your-ip>:${PORT}`)
         console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`)
+        console.log(`🔌 Socket.IO initialized for real-time tracking`)
     })
 }).catch((error) => {
     console.error("Failed to connect to the database:", error);
