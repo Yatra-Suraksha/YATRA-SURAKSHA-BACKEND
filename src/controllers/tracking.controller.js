@@ -9,40 +9,71 @@ import { getConnectedClientsInfo } from '../services/socket.service.js'
  * /api/tracking/location/update:
  *   post:
  *     summary: Update tourist location
+ *     description: Update the current location of a tourist with GPS coordinates and metadata
  *     tags: [Tracking]
+ *     security:
+ *       - FirebaseAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - touristId
- *               - latitude
- *               - longitude
- *             properties:
- *               touristId:
- *                 type: string
- *               latitude:
- *                 type: number
- *               longitude:
- *                 type: number
- *               accuracy:
- *                 type: number
- *               speed:
- *                 type: number
- *               heading:
- *                 type: number
- *               altitude:
- *                 type: number
- *               batteryLevel:
- *                 type: number
- *               timestamp:
- *                 type: string
- *                 format: date-time
+ *             $ref: '#/components/schemas/LocationUpdateRequest'
+ *           example:
+ *             touristId: "64f8a2b4c1d2e3f456789abc"
+ *             latitude: 26.1445
+ *             longitude: 91.7362
+ *             accuracy: 5.2
+ *             speed: 2.5
+ *             heading: 180
+ *             altitude: 56
+ *             batteryLevel: 85
+ *             timestamp: "2024-01-15T10:30:00Z"
+ *             source: "gps"
  *     responses:
  *       200:
  *         description: Location updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         locationId:
+ *                           type: string
+ *                           description: Unique location record ID
+ *                         timestamp:
+ *                           type: string
+ *                           format: date-time
+ *                           description: Location update timestamp
+ *             example:
+ *               success: true
+ *               message: "Location updated successfully"
+ *               data:
+ *                 locationId: "64f8a2b4c1d2e3f456789def"
+ *                 timestamp: "2024-01-15T10:30:00Z"
+ *       400:
+ *         description: Bad request - Invalid coordinates or missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Tourist not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 export const updateLocation = async (req, res) => {
     try {
