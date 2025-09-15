@@ -30,13 +30,54 @@ fi
 # Navigate to fabric-network directory
 cd "$(dirname "$0")/.."
 
+# Load environment variables from .env file if it exists
+if [ -f "../../.env" ]; then
+    export $(grep -v '^#' ../../.env | xargs)
+    echo -e "${GREEN}✅ Loaded environment variables from .env file${NC}"
+elif [ -f ".env" ]; then
+    export $(grep -v '^#' .env | xargs)
+    echo -e "${GREEN}✅ Loaded environment variables from .env file${NC}"
+fi
+
 echo -e "${YELLOW}Step 1: Installing Hyperledger Fabric Binaries...${NC}"
 
 # Download Hyperledger Fabric binaries if not present
 if [ ! -d "bin" ]; then
-    echo "Downloading Fabric binaries..."
-    curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.4 1.5.5
-    export PATH=$PWD/bin:$PATH
+    echo "Checking for existing Fabric installation..."
+    
+    # Set Fabric samples path from environment or use default detection
+    if [ -n "$HYPERLEDGER_FABRIC_PATH" ]; then
+        FABRIC_SAMPLES_PATH="$HYPERLEDGER_FABRIC_PATH"
+        echo -e "${GREEN}📁 Using Fabric path from environment: $FABRIC_SAMPLES_PATH${NC}"
+    else
+        # Try common installation paths
+        POSSIBLE_PATHS=(
+            "/home/$USER/Documents/Projects/BLOCKCHAIN/fabric/fabric-samples"
+            "/home/$USER/fabric-samples"
+            "$HOME/fabric-samples"
+            "/opt/fabric-samples"
+            "/usr/local/fabric-samples"
+        )
+        
+        for path in "${POSSIBLE_PATHS[@]}"; do
+            if [ -d "$path/bin" ]; then
+                FABRIC_SAMPLES_PATH="$path"
+                echo -e "${GREEN}✅ Found Fabric installation at: $path${NC}"
+                break
+            fi
+        done
+    fi
+    
+    if [ -n "$FABRIC_SAMPLES_PATH" ] && [ -d "$FABRIC_SAMPLES_PATH/bin" ]; then
+        echo "Found existing Fabric binaries! Creating symlink..."
+        ln -s "$FABRIC_SAMPLES_PATH/bin" ./bin
+        ln -s "$FABRIC_SAMPLES_PATH/config" ./config
+        export PATH=$PWD/bin:$PATH
+    else
+        echo "Downloading Fabric binaries..."
+        curl -sSL https://bit.ly/2ysbOFE | bash -s -- 2.5.4 1.5.5
+        export PATH=$PWD/bin:$PATH
+    fi
 else
     echo "Fabric binaries already installed."
     export PATH=$PWD/bin:$PATH

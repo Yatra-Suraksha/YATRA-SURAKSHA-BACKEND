@@ -26,7 +26,12 @@ A comprehensive backend system for ensuring tourist safety through blockchain-ba
    # Edit .env with your configuration
    ```
 
-3. **Start MongoDB**
+3. **Validate configuration (recommended)**
+   ```bash
+   npm run validate
+   ```
+
+4. **Start MongoDB**
    ```bash
    docker pull mongodb/mongodb-community-server:latest
    docker run --name mongodb -p 27017:27017 -d mongodb/mongodb-community-server:latest
@@ -42,6 +47,21 @@ A comprehensive backend system for ensuring tourist safety through blockchain-ba
 For full blockchain functionality with Hyperledger Fabric:
 
 **📖 [Complete Hyperledger Fabric Setup Guide](./HYPERLEDGER-SETUP.md)**
+
+### Configuration
+
+**Step 1: Configure Fabric Path**
+```bash
+# Method 1: Set in .env file (recommended)
+HYPERLEDGER_FABRIC_PATH=/path/to/your/fabric-samples
+
+# Method 2: Auto-detection (script will search common paths)
+# If you installed Fabric in a standard location, leave HYPERLEDGER_FABRIC_PATH empty
+```
+
+**Common Fabric Installation Paths:**
+- Linux/Mac: `~/fabric-samples` or `~/Documents/fabric-samples`
+- Custom: `/opt/fabric-samples` or `/usr/local/fabric-samples`
 
 ### Quick Commands
 ```bash

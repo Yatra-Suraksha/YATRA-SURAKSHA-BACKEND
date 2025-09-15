@@ -8,6 +8,8 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "validate": "./scripts/validate-setup.sh",
+    "fabric:quick-setup": "cd fabric-network && ./scripts/quick-setup.sh",
     "fabric:setup": "cd fabric-network && ./scripts/setup-network.sh",
     "fabric:crypto": "cd fabric-network && ./scripts/generate-crypto.sh",
     "fabric:start": "cd fabric-network && ./scripts/start-network.sh",
