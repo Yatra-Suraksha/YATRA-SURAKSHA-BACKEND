@@ -41,3 +41,16 @@ coverage/
 config/yatrasuraksha-firebase-adminsdk-fbsvc-2cdfc2478f.json
 SYSTEM_ARCHITECTURE.md
 server.log
+
+# Hyperledger Fabric sensitive files
+fabric-network/crypto-config/
+fabric-network/channel-artifacts/
+fabric-network/wallet/
+fabric-network/bin/
+fabric-network/config/
+fabric-network/connection-profiles/connection-profile.json
+fabric-network/*.tar.gz
+fabric-network/*.block
+
+# Docker volumes and containers
+.fabricnetwork/

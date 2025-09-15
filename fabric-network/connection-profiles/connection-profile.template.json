@@ -1,0 +1,194 @@
+{
+    "name": "yatra-suraksha-network",
+    "version": "1.0.0",
+    "description": "Hyperledger Fabric network for Yatra Suraksha - DID-based tourism safety system",
+    "client": {
+        "organization": "TourismDept",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                },
+                "orderer": "300"
+            }
+        }
+    },
+    "organizations": {
+        "TourismDept": {
+            "mspid": "TourismDeptMSP",
+            "peers": [
+                "peer0.tourismdept.yatrasuraksha.com"
+            ],
+            "certificateAuthorities": [
+                "ca.tourismdept.yatrasuraksha.com"
+            ]
+        },
+        "Police": {
+            "mspid": "PoliceMSP",
+            "peers": [
+                "peer0.police.yatrasuraksha.com"
+            ],
+            "certificateAuthorities": [
+                "ca.police.yatrasuraksha.com"
+            ]
+        },
+        "Emergency": {
+            "mspid": "EmergencyMSP",
+            "peers": [
+                "peer0.emergency.yatrasuraksha.com"
+            ],
+            "certificateAuthorities": [
+                "ca.emergency.yatrasuraksha.com"
+            ]
+        }
+    },
+    "orderers": {
+        "orderer.yatrasuraksha.com": {
+            "url": "grpcs://localhost:7050",
+            "tlsCACerts": {
+                "pem": "${ORDERER_CA_CERT}"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "orderer.yatrasuraksha.com"
+            }
+        }
+    },
+    "peers": {
+        "peer0.tourismdept.yatrasuraksha.com": {
+            "url": "grpcs://localhost:7051",
+            "tlsCACerts": {
+                "pem": "${TOURISMDEPT_CA_CERT}"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "peer0.tourismdept.yatrasuraksha.com"
+            }
+        },
+        "peer0.police.yatrasuraksha.com": {
+            "url": "grpcs://localhost:8051",
+            "tlsCACerts": {
+                "pem": "${POLICE_CA_CERT}"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "peer0.police.yatrasuraksha.com"
+            }
+        },
+        "peer0.emergency.yatrasuraksha.com": {
+            "url": "grpcs://localhost:9051",
+            "tlsCACerts": {
+                "pem": "${EMERGENCY_CA_CERT}"
+            },
+            "grpcOptions": {
+                "ssl-target-name-override": "peer0.emergency.yatrasuraksha.com"
+            }
+        }
+    },
+    "certificateAuthorities": {
+        "ca.tourismdept.yatrasuraksha.com": {
+            "url": "https://localhost:7054",
+            "caName": "ca-tourismdept",
+            "tlsCACerts": {
+                "pem": "${TOURISMDEPT_CA_CERT}"
+            },
+            "httpOptions": {
+                "verify": false
+            }
+        },
+        "ca.police.yatrasuraksha.com": {
+            "url": "https://localhost:8054",
+            "caName": "ca-police",
+            "tlsCACerts": {
+                "pem": "${POLICE_CA_CERT}"
+            },
+            "httpOptions": {
+                "verify": false
+            }
+        },
+        "ca.emergency.yatrasuraksha.com": {
+            "url": "https://localhost:9054",
+            "caName": "ca-emergency",
+            "tlsCACerts": {
+                "pem": "${EMERGENCY_CA_CERT}"
+            },
+            "httpOptions": {
+                "verify": false
+            }
+        }
+    },
+    "channels": {
+        "digitalid-channel": {
+            "orderers": [
+                "orderer.yatrasuraksha.com"
+            ],
+            "peers": {
+                "peer0.tourismdept.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                },
+                "peer0.police.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                },
+                "peer0.emergency.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                }
+            }
+        },
+        "travel-channel": {
+            "orderers": [
+                "orderer.yatrasuraksha.com"
+            ],
+            "peers": {
+                "peer0.tourismdept.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                },
+                "peer0.police.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": false
+                },
+                "peer0.emergency.yatrasuraksha.com": {
+                    "endorsingPeer": false,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": false
+                }
+            }
+        },
+        "incidents-channel": {
+            "orderers": [
+                "orderer.yatrasuraksha.com"
+            ],
+            "peers": {
+                "peer0.tourismdept.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                },
+                "peer0.police.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                },
+                "peer0.emergency.yatrasuraksha.com": {
+                    "endorsingPeer": true,
+                    "chaincodeQuery": true,
+                    "ledgerQuery": true,
+                    "eventSource": true
+                }
+            }
+        }
+    }
+}
