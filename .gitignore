@@ -39,7 +39,7 @@ coverage/
 
 # Firebase service account file
 config/yatrasuraksha-firebase-adminsdk-fbsvc-2cdfc2478f.json
-SYSTEM_ARCHITECTURE.md
+# SYSTEM_ARCHITECTURE.md
 server.log
 
 # Hyperledger Fabric sensitive files
