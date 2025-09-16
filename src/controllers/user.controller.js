@@ -5,11 +5,23 @@ const createAutomaticTouristProfile = async (firebaseUser) => {
     try {
         const { uid, email, name, picture, emailVerified } = firebaseUser;
         
+        console.log(`🔍 Searching for firebaseUid: "${uid}"`);
+        
         const existingTourist = await Tourist.findOne({ firebaseUid: uid });
+        
+        console.log(`🔍 Query result:`, existingTourist ? {
+            _id: existingTourist._id,
+            firebaseUid: existingTourist.firebaseUid,
+            email: existingTourist.personalInfo?.email
+        } : 'null');
+        
         if (existingTourist) {
+            console.log(`✅ Returning existing profile: ${existingTourist._id}`);
             return existingTourist;
         }
 
+        console.log(`❌ No profile found, should create new one for uid: "${uid}"`);
+        
         const timestamp = Date.now();
         const uidPrefix = uid.substring(0, 8).toUpperCase();
         const digitalId = `YATRA-${timestamp}-${uidPrefix}`;
@@ -59,10 +71,30 @@ const createAutomaticTouristProfile = async (firebaseUser) => {
             }
         });
 
-        await touristProfile.save();
+        // Add debugging to see what's happening
+        console.log(`🔄 About to save tourist profile for user: ${uid}`);
+        console.log(`🔄 Profile data before save:`, {
+            digitalId,
+            firebaseUid: uid,
+            email: email
+        });
         
-        console.log(`✅ Auto-created tourist profile for user: ${uid} with Digital ID: ${digitalId}`);
-        return touristProfile;
+        const savedProfile = await touristProfile.save();
+        
+        console.log(`✅ Save operation completed`);
+        console.log(`✅ Returned profile ID: ${savedProfile._id}`);
+        console.log(`✅ Profile saved successfully: ${savedProfile.digitalId}`);
+        
+        // CRITICAL: Verify the profile actually exists in database
+        const verifyProfile = await Tourist.findById(savedProfile._id);
+        if (verifyProfile) {
+            console.log(`✅ VERIFIED: Profile found in database: ${verifyProfile._id}`);
+        } else {
+            console.log(`❌ CRITICAL ERROR: Profile NOT found in database after save!`);
+            console.log(`❌ Saved ID: ${savedProfile._id} does not exist in DB`);
+        }
+        
+        return savedProfile;
         
     } catch (error) {
         console.error('❌ Error creating automatic tourist profile:', error);
@@ -92,6 +124,11 @@ export const verifyToken = async (req, res) => {
         let touristProfile = null;
         try {
             touristProfile = await createAutomaticTouristProfile(req.user);
+            console.log(`🔍 Tourist profile returned:`, {
+                id: touristProfile?._id,
+                digitalId: touristProfile?.digitalId,
+                firebaseUid: touristProfile?.firebaseUid
+            });
         } catch (touristError) {
             console.error('Error creating tourist profile:', touristError);
             
@@ -145,9 +182,19 @@ export const getCurrentUser = async (req, res) => {
         }
 
         const { uid, email, name, picture, emailVerified } = req.user;
+        
+        console.log(`🚨 getCurrentUser called with Firebase UID: "${uid}"`);
+        console.log(`🚨 User email: "${email}"`);
+        console.log(`🚨 Known UIDs in database: "xFQtS4KQ1mUuIFrrkaQz9idrSa13", "9YDUGTv0B5Pm3oQL9qkR2ebXvn73"`);
+        
         let touristProfile = null;
         try {
             touristProfile = await createAutomaticTouristProfile(req.user);
+            console.log(`🔍 getCurrentUser - Tourist profile returned:`, {
+                id: touristProfile?._id,
+                digitalId: touristProfile?.digitalId,
+                firebaseUid: touristProfile?.firebaseUid
+            });
         } catch (touristError) {
             console.error('Error fetching/creating tourist profile:', touristError);
         }
