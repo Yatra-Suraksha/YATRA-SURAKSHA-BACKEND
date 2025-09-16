@@ -27,13 +27,35 @@ const touristSchema = new mongoose.Schema({
         },
         phone: {
             type: String,
-            required: true,
-            trim: true
+            required: function() {
+                // Phone is required only if profile completion stage is beyond 'initial'
+                return this.profileCompletionStage !== 'initial';
+            },
+            trim: true,
+            validate: {
+                validator: function(v) {
+                    // If phone is provided, it should be valid format
+                    if (!v) return true; // Allow empty for initial stage
+                    return /^[+]?[\d\s\-\(\)]+$/.test(v) && v.length >= 10;
+                },
+                message: 'Phone number must be valid international format'
+            }
         },
         nationality: {
             type: String,
-            required: true,
-            trim: true
+            required: function() {
+                // Nationality is required only if profile completion stage is beyond 'initial'
+                return this.profileCompletionStage !== 'initial';
+            },
+            trim: true,
+            validate: {
+                validator: function(v) {
+                    // If nationality is provided, it should not be placeholder values
+                    if (!v) return true; // Allow empty for initial stage
+                    return v.length >= 2 && !['unknown', 'not specified', 'n/a'].includes(v.toLowerCase());
+                },
+                message: 'Please provide a valid nationality'
+            }
         },
         aadhaarNumber: {
             type: String,
@@ -77,6 +99,12 @@ const touristSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive', 'emergency', 'missing', 'safe'],
         default: 'active',
+        index: true
+    },
+    profileCompletionStage: {
+        type: String,
+        enum: ['initial', 'basic', 'complete', 'verified'],
+        default: 'initial',
         index: true
     },
     checkInTime: {

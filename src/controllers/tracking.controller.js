@@ -28,7 +28,6 @@ import { getConnectedClientsInfo } from '../services/socket.service.js'
  *             heading: 180
  *             altitude: 56
  *             batteryLevel: 85
- *             timestamp: "2024-01-15T10:30:00Z"
  *             source: "gps"
  *     responses:
  *       200:
@@ -55,7 +54,7 @@ import { getConnectedClientsInfo } from '../services/socket.service.js'
  *               message: "Location updated successfully"
  *               data:
  *                 locationId: "64f8a2b4c1d2e3f456789def"
- *                 timestamp: "2024-01-15T10:30:00Z"
+ *                 timestamp: "2025-09-16T08:15:30Z"
  *       400:
  *         description: Bad request - Invalid coordinates or missing required fields
  *         content:
@@ -86,7 +85,6 @@ export const updateLocation = async (req, res) => {
             heading = 0,
             altitude = 0,
             batteryLevel = 100,
-            timestamp,
             source = 'gps'
         } = req.body
 
@@ -122,7 +120,7 @@ export const updateLocation = async (req, res) => {
                 type: 'Point',
                 coordinates: [longitude, latitude] // GeoJSON format
             },
-            timestamp: timestamp ? new Date(timestamp) : new Date(),
+            timestamp: new Date(), // Always use server timestamp for security
             accuracy,
             speed,
             heading,
@@ -192,6 +190,15 @@ export const getLocationHistory = async (req, res) => {
         const { touristId } = req.params
         const { limit = 100, hours = 24 } = req.query
 
+        // Validate if tourist exists
+        const tourist = await Tourist.findById(touristId)
+        if (!tourist) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist not found'
+            })
+        }
+
         const startTime = new Date(Date.now() - hours * 60 * 60 * 1000)
 
         const locations = await LocationHistory.find({
@@ -219,6 +226,7 @@ export const getLocationHistory = async (req, res) => {
             success: true,
             data: {
                 touristId,
+                touristName: tourist.personalInfo?.name || 'Unknown',
                 locations: formattedLocations,
                 count: formattedLocations.length
             }
@@ -605,6 +613,23 @@ export const createEmergencyAlert = async (req, res) => {
             })
         }
 
+        // Validate coordinates
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid coordinates'
+            })
+        }
+
+        // Validate if tourist exists BEFORE creating alert
+        const tourist = await Tourist.findById(touristId)
+        if (!tourist) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist not found'
+            })
+        }
+
         const alert = new Alert({
             alertId: `emergency_${Date.now()}_${touristId}`,
             touristId,
@@ -626,11 +651,24 @@ export const createEmergencyAlert = async (req, res) => {
 
         await alert.save()
 
-        // Update tourist status
-        await Tourist.findByIdAndUpdate(touristId, {
-            status: 'emergency',
-            lastEmergencyAlert: new Date()
-        })
+        // Update tourist status - use findByIdAndUpdate with error handling
+        const updatedTourist = await Tourist.findByIdAndUpdate(
+            touristId, 
+            {
+                status: 'emergency',
+                lastEmergencyAlert: new Date()
+            },
+            { new: true }
+        )
+
+        if (!updatedTourist) {
+            // If tourist was deleted between checks, clean up the alert
+            await Alert.findByIdAndDelete(alert._id)
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist not found during status update'
+            })
+        }
 
         res.json({
             success: true,
@@ -711,7 +749,7 @@ export const getGeofences = async (req, res) => {
  */
 export const createGeofence = async (req, res) => {
     try {
-        const { name, coordinates, type, description, radius } = req.body
+        const { name, coordinates, type, description, radius, riskLevel, alertMessage } = req.body
 
         if (!name || !coordinates) {
             return res.status(400).json({
@@ -720,16 +758,48 @@ export const createGeofence = async (req, res) => {
             })
         }
 
+        // Validate coordinates
+        if (!Array.isArray(coordinates)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Coordinates must be an array'
+            })
+        }
+
+        // Validate geofence type
+        const validTypes = ['safe', 'warning', 'danger', 'restricted', 'emergency_services', 'accommodation', 'tourist_spot'];
+        if (type && !validTypes.includes(type)) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid geofence type. Must be one of: ${validTypes.join(', ')}`
+            })
+        }
+
+        // Validate risk level
+        if (riskLevel !== undefined && (riskLevel < 1 || riskLevel > 10)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Risk level must be between 1 and 10'
+            })
+        }
+
+        // Create geofence with a default createdBy user (you might want to get this from auth)
         const geofence = new GeoFence({
-            name,
+            name: name.trim(),
             type: type || 'warning',
-            description,
+            description: description?.trim(),
             geometry: {
                 type: radius ? 'Circle' : 'Polygon',
                 coordinates: radius ? coordinates : [coordinates],
                 radius: radius
             },
-            isActive: true
+            riskLevel: riskLevel || 5,
+            alertMessage: alertMessage || {
+                english: `You are entering ${name}`,
+                hindi: `आप ${name} में प्रवेश कर रहे हैं`
+            },
+            isActive: true,
+            createdBy: req.user?.uid || 'system' // This should come from authentication
         })
 
         await geofence.save()
@@ -737,11 +807,34 @@ export const createGeofence = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Geofence created successfully',
-            data: geofence
+            data: {
+                id: geofence._id,
+                name: geofence.name,
+                type: geofence.type,
+                geometry: geofence.geometry,
+                riskLevel: geofence.riskLevel,
+                isActive: geofence.isActive
+            }
         })
 
     } catch (error) {
         console.error('Error creating geofence:', error)
+        
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                details: Object.values(error.errors).map(err => err.message)
+            })
+        }
+        
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: 'A geofence with this name already exists'
+            })
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Failed to create geofence'
@@ -960,3 +1053,398 @@ export const getTouristsByLocation = async (req, res) => {
         })
     }
 }
+
+/**
+ * @swagger
+ * /api/tracking/location/history/all/{touristId}:
+ *   get:
+ *     summary: Get complete location history for a specific tourist
+ *     description: Retrieves all location history records for a specified tourist with optional filtering and pagination
+ *     tags: [Tracking]
+ *     security:
+ *       - FirebaseAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: touristId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Tourist ID to get location history for
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 1000
+ *           maximum: 10000
+ *         description: Maximum number of records to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of records to skip for pagination
+ *       - in: query
+ *         name: source
+ *         schema:
+ *           type: string
+ *           enum: [gps, network, manual, iot_device, emergency]
+ *         description: Filter by location source
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, geojson, csv]
+ *           default: json
+ *         description: Response format
+ *     responses:
+ *       200:
+ *         description: Location history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               allOf:
+ *                 - $ref: '#/components/schemas/SuccessResponse'
+ *                 - type: object
+ *                   properties:
+ *                     data:
+ *                       type: object
+ *                       properties:
+ *                         touristId:
+ *                           type: string
+ *                         touristName:
+ *                           type: string
+ *                         totalRecords:
+ *                           type: integer
+ *                         returnedRecords:
+ *                           type: integer
+ *                         timeRange:
+ *                           type: object
+ *                           properties:
+ *                             startDate:
+ *                               type: string
+ *                               format: date-time
+ *                             endDate:
+ *                               type: string
+ *                               format: date-time
+ *                         locations:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                               latitude:
+ *                                 type: number
+ *                               longitude:
+ *                                 type: number
+ *                               accuracy:
+ *                                 type: number
+ *                               speed:
+ *                                 type: number
+ *                               heading:
+ *                                 type: number
+ *                               altitude:
+ *                                 type: number
+ *                               batteryLevel:
+ *                                 type: number
+ *                               timestamp:
+ *                                 type: string
+ *                                 format: date-time
+ *                               source:
+ *                                 type: string
+ *                               networkInfo:
+ *                                 type: object
+ *                               context:
+ *                                 type: object
+ *       400:
+ *         description: Invalid parameters
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Access denied - can only access own data or authorized data
+ *       404:
+ *         description: Tourist not found
+ *       500:
+ *         description: Internal server error
+ */
+export const getUserLocationHistory = async (req, res) => {
+    try {
+        const { touristId } = req.params;
+        const {
+            startDate,
+            endDate,
+            limit = 1000,
+            offset = 0,
+            source,
+            format = 'json'
+        } = req.query;
+
+        // Input validation
+        const limitNum = Math.min(parseInt(limit) || 1000, 10000); // Max 10k records
+        const offsetNum = Math.max(parseInt(offset) || 0, 0);
+
+        // Validate tourist exists and user has access
+        const tourist = await Tourist.findById(touristId);
+        if (!tourist) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist not found'
+            });
+        }
+
+        // Authorization check: user can only access their own data OR admin access
+        const isOwnData = req.user && req.user.uid === tourist.firebaseUid;
+        const isAdmin = req.user && (req.user.role === 'admin' || req.user.role === 'authority');
+        
+        if (!isOwnData && !isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. You can only access your own location history.'
+            });
+        }
+
+        // Build time filter
+        let timeFilter = { touristId };
+        
+        if (startDate || endDate) {
+            timeFilter.timestamp = {};
+            
+            if (startDate) {
+                const start = new Date(startDate);
+                if (isNaN(start.getTime())) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid startDate format. Use YYYY-MM-DD format.'
+                    });
+                }
+                timeFilter.timestamp.$gte = start;
+            }
+            
+            if (endDate) {
+                const end = new Date(endDate);
+                if (isNaN(end.getTime())) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Invalid endDate format. Use YYYY-MM-DD format.'
+                    });
+                }
+                // Set to end of day
+                end.setHours(23, 59, 59, 999);
+                timeFilter.timestamp.$lte = end;
+            }
+        }
+
+        // Add source filter if specified
+        if (source && ['gps', 'network', 'manual', 'iot_device', 'emergency'].includes(source)) {
+            timeFilter.source = source;
+        }
+
+        // Get total count for pagination info
+        const totalRecords = await LocationHistory.countDocuments(timeFilter);
+
+        // Fetch location records with pagination
+        const locations = await LocationHistory.find(timeFilter)
+            .sort({ timestamp: -1 })
+            .skip(offsetNum)
+            .limit(limitNum)
+            .lean();
+
+        // Format response based on requested format
+        let responseData;
+        
+        switch (format) {
+            case 'geojson':
+                responseData = {
+                    type: 'FeatureCollection',
+                    features: locations.map(loc => ({
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: loc.location.coordinates
+                        },
+                        properties: {
+                            id: loc._id,
+                            timestamp: loc.timestamp,
+                            accuracy: loc.accuracy,
+                            speed: loc.speed,
+                            heading: loc.heading,
+                            altitude: loc.altitude,
+                            batteryLevel: loc.batteryLevel,
+                            source: loc.source,
+                            networkInfo: loc.networkInfo,
+                            context: loc.context
+                        }
+                    })),
+                    metadata: {
+                        touristId: touristId,
+                        touristName: tourist.personalInfo?.name || 'Unknown',
+                        totalRecords,
+                        returnedRecords: locations.length,
+                        timeRange: {
+                            startDate: timeFilter.timestamp?.$gte || null,
+                            endDate: timeFilter.timestamp?.$lte || null
+                        }
+                    }
+                };
+                break;
+
+            case 'csv':
+                // For CSV format, return CSV data
+                const csvHeader = 'id,latitude,longitude,accuracy,speed,heading,altitude,batteryLevel,timestamp,source\n';
+                const csvData = locations.map(loc => 
+                    `${loc._id},${loc.location.coordinates[1]},${loc.location.coordinates[0]},${loc.accuracy || ''},${loc.speed || ''},${loc.heading || ''},${loc.altitude || ''},${loc.batteryLevel || ''},${loc.timestamp},${loc.source}`
+                ).join('\n');
+                
+                res.setHeader('Content-Type', 'text/csv');
+                res.setHeader('Content-Disposition', `attachment; filename="location_history_${touristId}.csv"`);
+                return res.send(csvHeader + csvData);
+
+            default: // json
+                const formattedLocations = locations.map(loc => ({
+                    id: loc._id,
+                    latitude: loc.location.coordinates[1],
+                    longitude: loc.location.coordinates[0],
+                    accuracy: loc.accuracy,
+                    speed: loc.speed,
+                    heading: loc.heading,
+                    altitude: loc.altitude,
+                    batteryLevel: loc.batteryLevel,
+                    timestamp: loc.timestamp,
+                    source: loc.source,
+                    networkInfo: loc.networkInfo,
+                    context: loc.context
+                }));
+
+                responseData = {
+                    touristId: touristId,
+                    touristName: tourist.personalInfo?.name || 'Unknown',
+                    totalRecords,
+                    returnedRecords: locations.length,
+                    pagination: {
+                        limit: limitNum,
+                        offset: offsetNum,
+                        hasMore: (offsetNum + locations.length) < totalRecords,
+                        nextOffset: totalRecords > (offsetNum + limitNum) ? offsetNum + limitNum : null
+                    },
+                    timeRange: {
+                        startDate: timeFilter.timestamp?.$gte || null,
+                        endDate: timeFilter.timestamp?.$lte || null
+                    },
+                    filters: {
+                        source: source || null
+                    },
+                    locations: formattedLocations
+                };
+                break;
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Location history retrieved successfully',
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error('Error getting user location history:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve location history',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'INTERNAL_ERROR'
+        });
+    }
+};
+
+/**
+ * @swagger
+ * /api/tracking/location/history/my:
+ *   get:
+ *     summary: Get current user's complete location history
+ *     description: Retrieves all location history for the authenticated user
+ *     tags: [Tracking]
+ *     security:
+ *       - FirebaseAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Start date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: End date for filtering (YYYY-MM-DD)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 1000
+ *         description: Maximum number of records to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *         description: Number of records to skip for pagination
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, geojson, csv]
+ *           default: json
+ *         description: Response format
+ *     responses:
+ *       200:
+ *         description: Location history retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Tourist profile not found
+ */
+export const getMyLocationHistory = async (req, res) => {
+    try {
+        if (!req.user || !req.user.uid) {
+            return res.status(401).json({
+                success: false,
+                message: 'Authentication required'
+            });
+        }
+
+        // Find tourist profile for authenticated user
+        const tourist = await Tourist.findOne({ firebaseUid: req.user.uid });
+        if (!tourist) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist profile not found. Please complete your profile setup.'
+            });
+        }
+
+        // Use the existing getUserLocationHistory function by setting touristId in params
+        req.params.touristId = tourist._id.toString();
+        
+        // Call the main function
+        return await getUserLocationHistory(req, res);
+
+    } catch (error) {
+        console.error('Error getting my location history:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve location history',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'INTERNAL_ERROR'
+        });
+    }
+};

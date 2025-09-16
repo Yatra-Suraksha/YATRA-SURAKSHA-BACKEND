@@ -343,16 +343,60 @@ const options = {
                     type: 'object',
                     required: ['touristId', 'latitude', 'longitude'],
                     properties: {
-                        touristId: { type: 'string', description: 'Tourist ID' },
-                        latitude: { type: 'number', minimum: -90, maximum: 90 },
-                        longitude: { type: 'number', minimum: -180, maximum: 180 },
-                        accuracy: { type: 'number', description: 'GPS accuracy in meters' },
-                        speed: { type: 'number', description: 'Speed in m/s' },
-                        heading: { type: 'number', description: 'Direction in degrees' },
-                        altitude: { type: 'number', description: 'Altitude in meters' },
-                        batteryLevel: { type: 'number', minimum: 0, maximum: 100 },
-                        timestamp: { type: 'string', format: 'date-time' },
-                        source: { type: 'string', enum: ['gps', 'network', 'manual', 'iot_device', 'emergency'] }
+                        touristId: { 
+                            type: 'string', 
+                            description: 'Tourist ID' 
+                        },
+                        latitude: { 
+                            type: 'number', 
+                            minimum: -90, 
+                            maximum: 90,
+                            description: 'Latitude coordinate'
+                        },
+                        longitude: { 
+                            type: 'number', 
+                            minimum: -180, 
+                            maximum: 180,
+                            description: 'Longitude coordinate'
+                        },
+                        accuracy: { 
+                            type: 'number', 
+                            description: 'GPS accuracy in meters (optional)' 
+                        },
+                        speed: { 
+                            type: 'number', 
+                            description: 'Speed in m/s (optional)' 
+                        },
+                        heading: { 
+                            type: 'number', 
+                            description: 'Direction in degrees (optional)' 
+                        },
+                        altitude: { 
+                            type: 'number', 
+                            description: 'Altitude in meters (optional)' 
+                        },
+                        batteryLevel: { 
+                            type: 'number', 
+                            minimum: 0, 
+                            maximum: 100,
+                            description: 'Battery level percentage (optional)'
+                        },
+                        source: { 
+                            type: 'string', 
+                            enum: ['gps', 'network', 'manual', 'iot_device', 'emergency'],
+                            description: 'Location source type (optional)'
+                        }
+                    },
+                    example: {
+                        touristId: "64f8a2b4c1d2e3f456789abc",
+                        latitude: 26.1445,
+                        longitude: 91.7362,
+                        accuracy: 5.2,
+                        speed: 2.5,
+                        heading: 180,
+                        altitude: 56,
+                        batteryLevel: 85,
+                        source: "gps"
                     }
                 },
                 

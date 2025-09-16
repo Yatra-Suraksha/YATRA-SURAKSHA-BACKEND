@@ -74,6 +74,41 @@ locationHistorySchema.index({ touristId: 1, timestamp: -1 });
 locationHistorySchema.index({ timestamp: 1 });
 locationHistorySchema.index({ source: 1, timestamp: -1 });
 
+// Add validation hook to ensure tourist exists
+locationHistorySchema.pre('save', async function(next) {
+    try {
+        const Tourist = mongoose.model('Tourist');
+        const tourist = await Tourist.findById(this.touristId);
+        if (!tourist) {
+            const error = new Error(`Tourist with ID ${this.touristId} does not exist`);
+            error.name = 'ValidationError';
+            return next(error);
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Add coordinate validation
+locationHistorySchema.pre('save', function(next) {
+    const [longitude, latitude] = this.location.coordinates;
+    
+    if (latitude < -90 || latitude > 90) {
+        const error = new Error('Latitude must be between -90 and 90 degrees');
+        error.name = 'ValidationError';
+        return next(error);
+    }
+    
+    if (longitude < -180 || longitude > 180) {
+        const error = new Error('Longitude must be between -180 and 180 degrees');
+        error.name = 'ValidationError';
+        return next(error);
+    }
+    
+    next();
+});
+
 const alertSchema = new mongoose.Schema({
     alertId: {
         type: String,
@@ -176,6 +211,43 @@ alertSchema.index({ type: 1, severity: 1, 'acknowledgment.isAcknowledged': 1 });
 alertSchema.index({ touristId: 1, createdAt: -1 });
 alertSchema.index({ createdAt: -1 });
 
+// Add validation hook to ensure tourist exists for alerts
+alertSchema.pre('save', async function(next) {
+    try {
+        const Tourist = mongoose.model('Tourist');
+        const tourist = await Tourist.findById(this.touristId);
+        if (!tourist) {
+            const error = new Error(`Tourist with ID ${this.touristId} does not exist`);
+            error.name = 'ValidationError';
+            return next(error);
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Add coordinate validation for alerts
+alertSchema.pre('save', function(next) {
+    if (this.location && this.location.coordinates) {
+        const [longitude, latitude] = this.location.coordinates;
+        
+        if (latitude < -90 || latitude > 90) {
+            const error = new Error('Alert latitude must be between -90 and 90 degrees');
+            error.name = 'ValidationError';
+            return next(error);
+        }
+        
+        if (longitude < -180 || longitude > 180) {
+            const error = new Error('Alert longitude must be between -180 and 180 degrees');
+            error.name = 'ValidationError';
+            return next(error);
+        }
+    }
+    
+    next();
+});
+
 const deviceSchema = new mongoose.Schema({
     deviceId: {
         type: String,
@@ -265,6 +337,37 @@ const deviceSchema = new mongoose.Schema({
 deviceSchema.index({ touristId: 1, status: 1 });
 deviceSchema.index({ type: 1, status: 1 });
 deviceSchema.index({ 'currentMetrics.lastPing': 1 });
+
+// Add validation hook to ensure tourist exists for devices (if assigned)
+deviceSchema.pre('save', async function(next) {
+    try {
+        if (this.touristId) {
+            const Tourist = mongoose.model('Tourist');
+            const tourist = await Tourist.findById(this.touristId);
+            if (!tourist) {
+                const error = new Error(`Tourist with ID ${this.touristId} does not exist`);
+                error.name = 'ValidationError';
+                return next(error);
+            }
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Add battery level validation
+deviceSchema.pre('save', function(next) {
+    if (this.currentMetrics && this.currentMetrics.batteryLevel !== undefined) {
+        const battery = this.currentMetrics.batteryLevel;
+        if (battery < 0 || battery > 100) {
+            const error = new Error('Battery level must be between 0 and 100');
+            error.name = 'ValidationError';
+            return next(error);
+        }
+    }
+    next();
+});
 
 export const LocationHistory = mongoose.model('LocationHistory', locationHistorySchema);
 export const Alert = mongoose.model('Alert', alertSchema);

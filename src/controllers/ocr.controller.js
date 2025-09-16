@@ -93,9 +93,46 @@ export const processDocument = async (req, res) => {
             });
         }
 
+        // Validate file size (max 10MB)
+        if (req.file.size > 10 * 1024 * 1024) {
+            return res.status(400).json({
+                success: false,
+                message: 'File size too large. Maximum size is 10MB.'
+            });
+        }
+
+        // Validate file type more strictly
+        const allowedMimeTypes = [
+            'image/jpeg', 'image/jpg', 'image/png', 
+            'image/bmp', 'image/tiff', 'image/tif'
+        ];
+        
+        if (!allowedMimeTypes.includes(req.file.mimetype.toLowerCase())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid file type. Only JPEG, PNG, BMP, and TIFF images are allowed.'
+            });
+        }
+
+        // Check if file buffer exists and is not empty
+        if (!req.file.buffer || req.file.buffer.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Uploaded file is empty or corrupted.'
+            });
+        }
+
         console.log(`Processing document: ${req.file.originalname}, Size: ${Math.round(req.file.size / 1024)}KB`);
 
         const result = await ocrService.processDocument(req.file.buffer);
+
+        // Validate OCR result
+        if (!result || !result.documentType) {
+            return res.status(422).json({
+                success: false,
+                message: 'Could not process document. Please ensure the image is clear and contains valid document data.'
+            });
+        }
 
         res.json({
             success: true,
@@ -124,6 +161,9 @@ export const processDocument = async (req, res) => {
         } else if (error.message.includes('Azure')) {
             statusCode = 503;
             errorMessage = 'OCR service temporarily unavailable. Please try again later.';
+        } else if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+            statusCode = 503;
+            errorMessage = 'OCR service is not reachable. Please try again later.';
         }
         
         res.status(statusCode).json({

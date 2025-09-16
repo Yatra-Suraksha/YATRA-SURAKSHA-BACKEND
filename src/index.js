@@ -13,6 +13,8 @@ import userRouter from './routes/user.router.js'
 import ocrRouter from './routes/ocr.router.js'
 import trackingRouter from './routes/tracking.router.js'
 import { initializeSocketIO } from './services/socket.service.js'
+import { cleanupOrphanedRecords } from './middlewares/validation.middleware.js'
+import cron from 'node-cron'
 
 const app = express()
 const server = createServer(app)
@@ -103,6 +105,17 @@ connectDB().then(() => {
         console.log(`🌐 Network access: http://<your-ip>:${PORT}`)
         console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`)
         console.log(`🔌 Socket.IO initialized for real-time tracking`)
+        
+        // Schedule daily cleanup of orphaned records at 2 AM
+        cron.schedule('0 2 * * *', () => {
+            console.log('🔄 Running scheduled cleanup of orphaned records...');
+            cleanupOrphanedRecords();
+        });
+        
+        // Run initial cleanup on startup
+        setTimeout(() => {
+            cleanupOrphanedRecords();
+        }, 5000);
     })
 }).catch((error) => {
     console.error("Failed to connect to the database:", error);
