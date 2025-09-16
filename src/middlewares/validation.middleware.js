@@ -3,9 +3,6 @@ import Tourist from '../models/tourist.model.js';
 import GeoFence from '../models/geoFence.model.js';
 import { LocationHistory, Alert, Device } from '../models/tracking.model.js';
 
-/**
- * Validate ObjectId format
- */
 export const validateObjectId = (fieldName) => {
     return (req, res, next) => {
         const id = req.params[fieldName] || req.body[fieldName];
@@ -28,9 +25,6 @@ export const validateObjectId = (fieldName) => {
     };
 };
 
-/**
- * Validate tourist exists before operations
- */
 export const validateTouristExists = async (req, res, next) => {
     try {
         const touristId = req.params.touristId || req.body.touristId;
@@ -49,8 +43,6 @@ export const validateTouristExists = async (req, res, next) => {
                 message: 'Tourist not found'
             });
         }
-
-        // Add tourist data to request for use in controllers
         req.tourist = tourist;
         next();
     } catch (error) {
@@ -62,25 +54,19 @@ export const validateTouristExists = async (req, res, next) => {
     }
 };
 
-/**
- * Validate or auto-create tourist profile from authenticated user
- * This middleware works with the Firebase auth middleware to ensure tourist profile exists
- */
 export const validateOrCreateTourist = async (req, res, next) => {
     try {
-        // This middleware requires authentication first
+        
         if (!req.user || !req.user.uid) {
             return res.status(401).json({
                 success: false,
                 message: 'Authentication required to validate tourist profile'
             });
         }
-
-        // Check if touristId is provided in request, if so validate it
         const touristId = req.params.touristId || req.body.touristId;
         
         if (touristId) {
-            // Validate the provided tourist ID belongs to the authenticated user
+            
             const tourist = await Tourist.findOne({ 
                 _id: touristId, 
                 firebaseUid: req.user.uid 
@@ -95,11 +81,11 @@ export const validateOrCreateTourist = async (req, res, next) => {
             
             req.tourist = tourist;
         } else {
-            // No specific tourist ID provided, get/create tourist profile for authenticated user
+            
             const tourist = await Tourist.findOne({ firebaseUid: req.user.uid });
             
             if (!tourist) {
-                // This should not happen with auto-creation, but handle gracefully
+                
                 return res.status(404).json({
                     success: false,
                     message: 'Tourist profile not found. Please complete profile setup.'
@@ -107,7 +93,7 @@ export const validateOrCreateTourist = async (req, res, next) => {
             }
             
             req.tourist = tourist;
-            // Add tourist ID to request for controllers that need it
+            
             if (!req.body.touristId && !req.params.touristId) {
                 req.body.touristId = tourist._id.toString();
             }
@@ -123,9 +109,6 @@ export const validateOrCreateTourist = async (req, res, next) => {
     }
 };
 
-/**
- * Validate geofence exists before operations
- */
 export const validateGeofenceExists = async (req, res, next) => {
     try {
         const fenceId = req.params.fenceId || req.body.fenceId;
@@ -156,9 +139,6 @@ export const validateGeofenceExists = async (req, res, next) => {
     }
 };
 
-/**
- * Validate coordinates
- */
 export const validateCoordinates = (req, res, next) => {
     const { latitude, longitude } = req.body;
     
@@ -193,9 +173,6 @@ export const validateCoordinates = (req, res, next) => {
     next();
 };
 
-/**
- * Validate alert exists before operations
- */
 export const validateAlertExists = async (req, res, next) => {
     try {
         const alertId = req.params.alertId || req.body.alertId;
@@ -226,9 +203,6 @@ export const validateAlertExists = async (req, res, next) => {
     }
 };
 
-/**
- * Validate device exists before operations
- */
 export const validateDeviceExists = async (req, res, next) => {
     try {
         const deviceId = req.params.deviceId || req.body.deviceId;
@@ -259,11 +233,8 @@ export const validateDeviceExists = async (req, res, next) => {
     }
 };
 
-/**
- * Sanitize and validate input data
- */
 export const sanitizeInput = (req, res, next) => {
-    // Remove any potential malicious scripts
+    
     const sanitizeString = (str) => {
         if (typeof str !== 'string') return str;
         return str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -292,9 +263,6 @@ export const sanitizeInput = (req, res, next) => {
     next();
 };
 
-/**
- * Validate pagination parameters
- */
 export const validatePagination = (req, res, next) => {
     const { page = 1, limit = 10 } = req.query;
     
@@ -324,9 +292,6 @@ export const validatePagination = (req, res, next) => {
     next();
 };
 
-/**
- * Validate location history parameters (limit/offset style)
- */
 export const validateLocationHistoryParams = (req, res, next) => {
     const { limit = 1000, offset = 0 } = req.query;
     
@@ -347,7 +312,7 @@ export const validateLocationHistoryParams = (req, res, next) => {
         });
     }
     
-    // Validate date parameters if provided
+    
     const { startDate, endDate } = req.query;
     
     if (startDate) {
@@ -370,7 +335,7 @@ export const validateLocationHistoryParams = (req, res, next) => {
         }
     }
     
-    // Validate format parameter
+    
     const { format = 'json' } = req.query;
     if (!['json', 'geojson', 'csv'].includes(format)) {
         return res.status(400).json({
@@ -382,14 +347,11 @@ export const validateLocationHistoryParams = (req, res, next) => {
     next();
 };
 
-/**
- * Check for orphaned records cleanup
- */
 export const cleanupOrphanedRecords = async () => {
     try {
         console.log('🧹 Starting orphaned records cleanup...');
         
-        // Find and remove location history for non-existent tourists
+        
         const orphanedLocations = await LocationHistory.aggregate([
             {
                 $lookup: {
@@ -414,8 +376,6 @@ export const cleanupOrphanedRecords = async () => {
             const locationResult = await LocationHistory.deleteMany({ _id: { $in: orphanedIds } });
             console.log(`🗑️ Removed ${locationResult.deletedCount} orphaned location records`);
         }
-
-        // Find and remove alerts for non-existent tourists
         const orphanedAlerts = await Alert.aggregate([
             {
                 $lookup: {
@@ -440,8 +400,6 @@ export const cleanupOrphanedRecords = async () => {
             const alertResult = await Alert.deleteMany({ _id: { $in: orphanedAlertIds } });
             console.log(`🗑️ Removed ${alertResult.deletedCount} orphaned alert records`);
         }
-
-        // Find and remove devices for non-existent tourists
         const orphanedDevices = await Device.aggregate([
             {
                 $lookup: {

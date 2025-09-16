@@ -5,7 +5,7 @@ import geolib from 'geolib'
 
 let connectedClients = new Map()
 let adminClients = new Set()
-let touristClients = new Map() // touristId -> socketId
+let touristClients = new Map() 
 
 export const initializeSocketIO = (io) => {
     io.on('connection', (socket) => {
@@ -15,8 +15,6 @@ export const initializeSocketIO = (io) => {
             connectedAt: new Date(),
             lastActivity: new Date()
         })
-
-        // Handle admin dashboard connections
         socket.on('join_admin', (data) => {
             console.log(`👨‍💼 Admin joined: ${socket.id}`)
             adminClients.add(socket.id)
@@ -27,11 +25,9 @@ export const initializeSocketIO = (io) => {
                 lastActivity: new Date()
             })
             
-            // Send current stats to newly connected admin
+            
             sendCurrentStatsToAdmin(socket)
         })
-
-        // Handle tourist mobile app connections
         socket.on('join_tourist', (data) => {
             console.log(`🚶‍♂️ Tourist joined: ${socket.id}, ID: ${data.touristId}`)
             touristClients.set(data.touristId, socket.id)
@@ -42,8 +38,6 @@ export const initializeSocketIO = (io) => {
                 lastActivity: new Date()
             })
         })
-
-        // Handle real-time location updates from mobile app
         socket.on('location_update', async (data) => {
             try {
                 await handleLocationUpdate(data, socket.id, io)
@@ -52,8 +46,6 @@ export const initializeSocketIO = (io) => {
                 socket.emit('error', { message: 'Failed to process location update' })
             }
         })
-
-        // Handle emergency/panic button
         socket.on('emergency_alert', async (data) => {
             try {
                 await handleEmergencyAlert(data, socket.id, io)
@@ -62,8 +54,6 @@ export const initializeSocketIO = (io) => {
                 socket.emit('error', { message: 'Failed to process emergency alert' })
             }
         })
-
-        // Handle device status updates
         socket.on('device_status', async (data) => {
             try {
                 await handleDeviceStatus(data, socket.id, io)
@@ -71,8 +61,6 @@ export const initializeSocketIO = (io) => {
                 console.error('Error handling device status:', error)
             }
         })
-
-        // Handle heartbeat for connection monitoring
         socket.on('heartbeat', (data) => {
             const client = connectedClients.get(socket.id)
             if (client) {
@@ -81,8 +69,6 @@ export const initializeSocketIO = (io) => {
             }
             socket.emit('heartbeat_ack', { timestamp: new Date() })
         })
-
-        // Handle disconnection
         socket.on('disconnect', () => {
             console.log(`🔌 Client disconnected: ${socket.id}`)
             const client = connectedClients.get(socket.id)
@@ -98,33 +84,23 @@ export const initializeSocketIO = (io) => {
             connectedClients.delete(socket.id)
         })
     })
-
-    // Send periodic updates to admin clients
     setInterval(() => {
         broadcastStatsToAdmins(io)
-    }, 30000) // Every 30 seconds
-
-    // Check for inactive devices
+    }, 30000) 
     setInterval(() => {
         checkInactiveDevices(io)
-    }, 300000) // Every 5 minutes
+    }, 300000) 
 }
-
-// Handle incoming location updates
 const handleLocationUpdate = async (data, socketId, io) => {
     const { touristId, latitude, longitude, accuracy, timestamp, speed, heading, altitude, batteryLevel, source } = data
-
-    // Validate required fields
     if (!touristId || !latitude || !longitude) {
         throw new Error('Missing required location data')
     }
-
-    // Store location in history
     const locationRecord = new LocationHistory({
         touristId,
         location: {
             type: 'Point',
-            coordinates: [longitude, latitude] // GeoJSON format: [lng, lat]
+            coordinates: [longitude, latitude] 
         },
         timestamp: timestamp ? new Date(timestamp) : new Date(),
         accuracy: accuracy || 10,
@@ -136,8 +112,6 @@ const handleLocationUpdate = async (data, socketId, io) => {
     })
 
     await locationRecord.save()
-
-    // Update tourist's current location
     await Tourist.findByIdAndUpdate(touristId, {
         currentLocation: {
             type: 'Point',
@@ -146,11 +120,7 @@ const handleLocationUpdate = async (data, socketId, io) => {
         lastLocationUpdate: new Date(),
         isActive: true
     })
-
-    // Check geofences
     await checkGeofences(touristId, latitude, longitude, io)
-
-    // Broadcast location update to admin clients
     const locationUpdate = {
         touristId,
         latitude,
@@ -165,12 +135,8 @@ const handleLocationUpdate = async (data, socketId, io) => {
 
     console.log(`📍 Location updated for tourist ${touristId}: ${latitude}, ${longitude}`)
 }
-
-// Handle emergency alerts
 const handleEmergencyAlert = async (data, socketId, io) => {
     const { touristId, latitude, longitude, type, message } = data
-
-    // Create emergency alert
     const alert = new Alert({
         alertId: `emergency_${Date.now()}_${touristId}`,
         touristId,
@@ -191,14 +157,10 @@ const handleEmergencyAlert = async (data, socketId, io) => {
     })
 
     await alert.save()
-
-    // Update tourist status
     await Tourist.findByIdAndUpdate(touristId, {
         status: 'emergency',
         lastEmergencyAlert: new Date()
     })
-
-    // Broadcast emergency to all admin clients
     const emergencyData = {
         alertId: alert.alertId,
         touristId,
@@ -213,8 +175,6 @@ const handleEmergencyAlert = async (data, socketId, io) => {
 
     console.log(`🚨 Emergency alert from tourist ${touristId} at ${latitude}, ${longitude}`)
 }
-
-// Handle device status updates
 const handleDeviceStatus = async (data, socketId, io) => {
     const { deviceId, touristId, batteryLevel, signalStrength, isCharging, temperature } = data
 
@@ -231,8 +191,6 @@ const handleDeviceStatus = async (data, socketId, io) => {
         },
         { upsert: true }
     )
-
-    // Send low battery alert if needed
     if (batteryLevel < 20) {
         const alert = new Alert({
             alertId: `battery_${Date.now()}_${touristId}`,
@@ -259,16 +217,12 @@ const handleDeviceStatus = async (data, socketId, io) => {
         })
     }
 }
-
-// Check geofences for location
 const checkGeofences = async (touristId, latitude, longitude, io) => {
     try {
         const geoFences = await GeoFence.find({ isActive: true })
         
         for (const fence of geoFences) {
             let isInside = false
-
-            // Handle different geometry types
             if (fence.geometry.type === 'Polygon') {
                 isInside = geolib.isPointInPolygon(
                     { latitude, longitude },
@@ -285,8 +239,6 @@ const checkGeofences = async (touristId, latitude, longitude, io) => {
                 )
                 isInside = distance <= (fence.geometry.radius || 1000)
             }
-
-            // Check if tourist entered or exited a geofence
             const lastAlert = await Alert.findOne({
                 touristId,
                 geoFenceId: fence._id,
@@ -296,7 +248,7 @@ const checkGeofences = async (touristId, latitude, longitude, io) => {
             const wasInside = lastAlert?.type === 'geofence_entry'
 
             if (isInside && !wasInside) {
-                // Tourist entered geofence
+                
                 const alert = new Alert({
                     alertId: `geofence_entry_${Date.now()}_${touristId}`,
                     touristId,
@@ -325,7 +277,7 @@ const checkGeofences = async (touristId, latitude, longitude, io) => {
                     timestamp: new Date()
                 })
             } else if (!isInside && wasInside) {
-                // Tourist exited geofence
+                
                 const alert = new Alert({
                     alertId: `geofence_exit_${Date.now()}_${touristId}`,
                     touristId,
@@ -358,8 +310,6 @@ const checkGeofences = async (touristId, latitude, longitude, io) => {
         console.error('Error checking geofences:', error)
     }
 }
-
-// Send current statistics to a newly connected admin
 const sendCurrentStatsToAdmin = async (socket) => {
     try {
         const stats = await getCurrentStats()
@@ -368,8 +318,6 @@ const sendCurrentStatsToAdmin = async (socket) => {
         console.error('Error sending current stats:', error)
     }
 }
-
-// Broadcast statistics to all admin clients
 const broadcastStatsToAdmins = async (io) => {
     try {
         const stats = await getCurrentStats()
@@ -378,8 +326,6 @@ const broadcastStatsToAdmins = async (io) => {
         console.error('Error broadcasting stats:', error)
     }
 }
-
-// Get current system statistics
 const getCurrentStats = async () => {
     const now = new Date()
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
@@ -409,8 +355,6 @@ const getCurrentStats = async () => {
         timestamp: now
     }
 }
-
-// Check for inactive devices and create alerts
 const checkInactiveDevices = async (io) => {
     try {
         const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000)
@@ -421,10 +365,8 @@ const checkInactiveDevices = async (io) => {
         }).populate('touristId')
 
         for (const device of inactiveDevices) {
-            // Update device status
+            
             await Device.findByIdAndUpdate(device._id, { status: 'offline' })
-
-            // Create inactivity alert
             const alert = new Alert({
                 alertId: `inactivity_${Date.now()}_${device.touristId._id}`,
                 touristId: device.touristId._id,
@@ -454,15 +396,11 @@ const checkInactiveDevices = async (io) => {
         console.error('Error checking inactive devices:', error)
     }
 }
-
-// Utility function to broadcast to all admin clients
 const broadcastToAdmins = (io, event, data) => {
     adminClients.forEach(socketId => {
         io.to(socketId).emit(event, data)
     })
 }
-
-// Get connected clients info
 export const getConnectedClientsInfo = () => {
     return {
         total: connectedClients.size,

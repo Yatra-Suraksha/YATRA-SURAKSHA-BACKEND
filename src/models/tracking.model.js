@@ -73,8 +73,6 @@ locationHistorySchema.index({ location: '2dsphere' });
 locationHistorySchema.index({ touristId: 1, timestamp: -1 });
 locationHistorySchema.index({ timestamp: 1 });
 locationHistorySchema.index({ source: 1, timestamp: -1 });
-
-// Add validation hook to ensure tourist exists
 locationHistorySchema.pre('save', async function(next) {
     try {
         const Tourist = mongoose.model('Tourist');
@@ -89,8 +87,6 @@ locationHistorySchema.pre('save', async function(next) {
         next(error);
     }
 });
-
-// Add coordinate validation
 locationHistorySchema.pre('save', function(next) {
     const [longitude, latitude] = this.location.coordinates;
     
@@ -210,8 +206,6 @@ alertSchema.index({ location: '2dsphere' });
 alertSchema.index({ type: 1, severity: 1, 'acknowledgment.isAcknowledged': 1 });
 alertSchema.index({ touristId: 1, createdAt: -1 });
 alertSchema.index({ createdAt: -1 });
-
-// Add validation hook to ensure tourist exists for alerts
 alertSchema.pre('save', async function(next) {
     try {
         const Tourist = mongoose.model('Tourist');
@@ -226,8 +220,6 @@ alertSchema.pre('save', async function(next) {
         next(error);
     }
 });
-
-// Add coordinate validation for alerts
 alertSchema.pre('save', function(next) {
     if (this.location && this.location.coordinates) {
         const [longitude, latitude] = this.location.coordinates;
@@ -337,8 +329,6 @@ const deviceSchema = new mongoose.Schema({
 deviceSchema.index({ touristId: 1, status: 1 });
 deviceSchema.index({ type: 1, status: 1 });
 deviceSchema.index({ 'currentMetrics.lastPing': 1 });
-
-// Add validation hook to ensure tourist exists for devices (if assigned)
 deviceSchema.pre('save', async function(next) {
     try {
         if (this.touristId) {
@@ -355,8 +345,6 @@ deviceSchema.pre('save', async function(next) {
         next(error);
     }
 });
-
-// Add battery level validation
 deviceSchema.pre('save', function(next) {
     if (this.currentMetrics && this.currentMetrics.batteryLevel !== undefined) {
         const battery = this.currentMetrics.batteryLevel;

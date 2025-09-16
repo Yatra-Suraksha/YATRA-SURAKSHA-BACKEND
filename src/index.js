@@ -18,9 +18,6 @@ import cron from 'node-cron'
 
 const app = express()
 const server = createServer(app)
-
-
-// Initialize Socket.IO
 const io = new Server(server, {
     cors: {
         origin: process.env.CORS_ORIGIN || '*',
@@ -29,14 +26,11 @@ const io = new Server(server, {
     },
     transports: ['websocket', 'polling']
 })
-
-// Initialize Socket.IO handlers
 initializeSocketIO(io)
 
 app.use(helmet({
     contentSecurityPolicy: false, 
 }))
-
 
 app.use(cors({
     origin: process.env.CORS_ORIGIN || '*',
@@ -44,11 +38,8 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }))
-
-
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
-
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
     explorer: true,
@@ -58,7 +49,6 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
         persistAuthorization: true,
     }
 }))
-
 
 app.get('/', (req, res) => {
     res.json({
@@ -74,14 +64,12 @@ app.use('/api/users', userRouter)
 app.use('/api/ocr', ocrRouter)
 app.use('/api/tracking', trackingRouter)
 
-
 app.use((req, res) => {
     res.status(404).json({
         success: false,
         message: 'Route not found'
     })
 })
-
 
 app.use((error, req, res, next) => {
     console.error('Global error handler:', error)
@@ -96,8 +84,6 @@ app.use((error, req, res, next) => {
 const PORT = process.env.PORT || 3000
 const HOST = process.env.HOST || '0.0.0.0'
 
-
-
 connectDB().then(() => {
     server.listen(PORT, HOST, () => {
         console.log(`🚀 Server is running on http://${HOST}:${PORT}`)
@@ -106,13 +92,13 @@ connectDB().then(() => {
         console.log(`📖 API Documentation: http://localhost:${PORT}/api-docs`)
         console.log(`🔌 Socket.IO initialized for real-time tracking`)
         
-        // Schedule daily cleanup of orphaned records at 2 AM
+        
         cron.schedule('0 2 * * *', () => {
             console.log('🔄 Running scheduled cleanup of orphaned records...');
             cleanupOrphanedRecords();
         });
         
-        // Run initial cleanup on startup
+        
         setTimeout(() => {
             cleanupOrphanedRecords();
         }, 5000);

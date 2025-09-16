@@ -1,79 +1,8 @@
 import { LocationHistory, Alert, Device } from '../models/tracking.model.js'
 import Tourist from '../models/tourist.model.js'
 import GeoFence from '../models/geoFence.model.js'
-import geolib from 'geolib'
 import { getConnectedClientsInfo } from '../services/socket.service.js'
 
-/**
- * @swagger
- * /api/tracking/location/update:
- *   post:
- *     summary: Update tourist location
- *     description: Update the current location of a tourist with GPS coordinates and metadata
- *     tags: [Tracking]
- *     security:
- *       - FirebaseAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/LocationUpdateRequest'
- *           example:
- *             touristId: "64f8a2b4c1d2e3f456789abc"
- *             latitude: 26.1445
- *             longitude: 91.7362
- *             accuracy: 5.2
- *             speed: 2.5
- *             heading: 180
- *             altitude: 56
- *             batteryLevel: 85
- *             source: "gps"
- *     responses:
- *       200:
- *         description: Location updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/SuccessResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       type: object
- *                       properties:
- *                         locationId:
- *                           type: string
- *                           description: Unique location record ID
- *                         timestamp:
- *                           type: string
- *                           format: date-time
- *                           description: Location update timestamp
- *             example:
- *               success: true
- *               message: "Location updated successfully"
- *               data:
- *                 locationId: "64f8a2b4c1d2e3f456789def"
- *                 timestamp: "2025-09-16T08:15:30Z"
- *       400:
- *         description: Bad request - Invalid coordinates or missing required fields
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       404:
- *         description: Tourist not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- */
 export const updateLocation = async (req, res) => {
     try {
         const {
@@ -88,7 +17,6 @@ export const updateLocation = async (req, res) => {
             source = 'gps'
         } = req.body
 
-        // Validate required fields
         if (!touristId || latitude === undefined || longitude === undefined) {
             return res.status(400).json({
                 success: false,
@@ -96,7 +24,6 @@ export const updateLocation = async (req, res) => {
             })
         }
 
-        // Validate coordinates
         if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
             return res.status(400).json({
                 success: false,
@@ -104,7 +31,6 @@ export const updateLocation = async (req, res) => {
             })
         }
 
-        // Check if tourist exists
         const tourist = await Tourist.findById(touristId)
         if (!tourist) {
             return res.status(404).json({
@@ -113,14 +39,13 @@ export const updateLocation = async (req, res) => {
             })
         }
 
-        // Store location in history
         const locationRecord = new LocationHistory({
             touristId,
             location: {
                 type: 'Point',
-                coordinates: [longitude, latitude] // GeoJSON format
+                coordinates: [longitude, latitude]
             },
-            timestamp: new Date(), // Always use server timestamp for security
+            timestamp: new Date(),
             accuracy,
             speed,
             heading,
@@ -131,7 +56,6 @@ export const updateLocation = async (req, res) => {
 
         await locationRecord.save()
 
-        // Update tourist's current location and status
         await Tourist.findByIdAndUpdate(touristId, {
             currentLocation: {
                 type: 'Point',
@@ -159,32 +83,6 @@ export const updateLocation = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/location/history/{touristId}:
- *   get:
- *     summary: Get location history for a tourist
- *     tags: [Tracking]
- *     parameters:
- *       - in: path
- *         name: touristId
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 100
- *       - in: query
- *         name: hours
- *         schema:
- *           type: integer
- *           default: 24
- *     responses:
- *       200:
- *         description: Location history retrieved successfully
- */
 export const getLocationHistory = async (req, res) => {
     try {
         const { touristId } = req.params
@@ -241,22 +139,6 @@ export const getLocationHistory = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/location/current/{touristId}:
- *   get:
- *     summary: Get current location for a tourist
- *     tags: [Tracking]
- *     parameters:
- *       - in: path
- *         name: touristId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Current location retrieved successfully
- */
 export const getCurrentLocation = async (req, res) => {
     try {
         const { touristId } = req.params
@@ -298,22 +180,6 @@ export const getCurrentLocation = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/location/heatmap:
- *   get:
- *     summary: Get heatmap data for visualization
- *     tags: [Tracking]
- *     parameters:
- *       - in: query
- *         name: hours
- *         schema:
- *           type: integer
- *           default: 24
- *     responses:
- *       200:
- *         description: Heatmap data retrieved successfully
- */
 export const getHeatmapData = async (req, res) => {
     try {
         const { hours = 24 } = req.query
@@ -367,16 +233,6 @@ export const getHeatmapData = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/stats:
- *   get:
- *     summary: Get tracking statistics
- *     tags: [Tracking]
- *     responses:
- *       200:
- *         description: Statistics retrieved successfully
- */
 export const getTouristStats = async (req, res) => {
     try {
         const now = new Date()
@@ -454,16 +310,6 @@ export const getTouristStats = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/alerts/active:
- *   get:
- *     summary: Get active alerts
- *     tags: [Alerts]
- *     responses:
- *       200:
- *         description: Active alerts retrieved successfully
- */
 export const getActiveAlerts = async (req, res) => {
     try {
         const alerts = await Alert.find({
@@ -506,33 +352,6 @@ export const getActiveAlerts = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/alerts/acknowledge/{alertId}:
- *   post:
- *     summary: Acknowledge an alert
- *     tags: [Alerts]
- *     parameters:
- *       - in: path
- *         name: alertId
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               acknowledgedBy:
- *                 type: string
- *               response:
- *                 type: string
- *     responses:
- *       200:
- *         description: Alert acknowledged successfully
- */
 export const acknowledgeAlert = async (req, res) => {
     try {
         const { alertId } = req.params
@@ -571,37 +390,6 @@ export const acknowledgeAlert = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/alerts/emergency:
- *   post:
- *     summary: Create emergency alert
- *     tags: [Alerts]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - touristId
- *               - latitude
- *               - longitude
- *             properties:
- *               touristId:
- *                 type: string
- *               latitude:
- *                 type: number
- *               longitude:
- *                 type: number
- *               message:
- *                 type: string
- *               type:
- *                 type: string
- *     responses:
- *       200:
- *         description: Emergency alert created successfully
- */
 export const createEmergencyAlert = async (req, res) => {
     try {
         const { touristId, latitude, longitude, message, type = 'panic_button' } = req.body
@@ -688,16 +476,6 @@ export const createEmergencyAlert = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/geofences:
- *   get:
- *     summary: Get all geofences
- *     tags: [Geofences]
- *     responses:
- *       200:
- *         description: Geofences retrieved successfully
- */
 export const getGeofences = async (req, res) => {
     try {
         const geofences = await GeoFence.find().lean()
@@ -719,34 +497,6 @@ export const getGeofences = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/geofences:
- *   post:
- *     summary: Create a new geofence
- *     tags: [Geofences]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *               - coordinates
- *             properties:
- *               name:
- *                 type: string
- *               coordinates:
- *                 type: array
- *               type:
- *                 type: string
- *               alertLevel:
- *                 type: string
- *     responses:
- *       201:
- *         description: Geofence created successfully
- */
 export const createGeofence = async (req, res) => {
     try {
         const { name, coordinates, type, description, radius, riskLevel, alertMessage } = req.body
@@ -842,22 +592,6 @@ export const createGeofence = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/geofences/{fenceId}:
- *   put:
- *     summary: Update a geofence
- *     tags: [Geofences]
- *     parameters:
- *       - in: path
- *         name: fenceId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Geofence updated successfully
- */
 export const updateGeofence = async (req, res) => {
     try {
         const { fenceId } = req.params
@@ -891,22 +625,6 @@ export const updateGeofence = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/geofences/{fenceId}:
- *   delete:
- *     summary: Delete a geofence
- *     tags: [Geofences]
- *     parameters:
- *       - in: path
- *         name: fenceId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Geofence deleted successfully
- */
 export const deleteGeofence = async (req, res) => {
     try {
         const { fenceId } = req.params
@@ -934,16 +652,6 @@ export const deleteGeofence = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/devices/connected:
- *   get:
- *     summary: Get connected devices information
- *     tags: [Devices]
- *     responses:
- *       200:
- *         description: Connected devices retrieved successfully
- */
 export const getConnectedDevices = async (req, res) => {
     try {
         const devices = await Device.find({
@@ -972,32 +680,6 @@ export const getConnectedDevices = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/location/nearby:
- *   get:
- *     summary: Get tourists near a location
- *     tags: [Tracking]
- *     parameters:
- *       - in: query
- *         name: latitude
- *         required: true
- *         schema:
- *           type: number
- *       - in: query
- *         name: longitude
- *         required: true
- *         schema:
- *           type: number
- *       - in: query
- *         name: radius
- *         schema:
- *           type: number
- *           default: 1000
- *     responses:
- *       200:
- *         description: Nearby tourists retrieved successfully
- */
 export const getTouristsByLocation = async (req, res) => {
     try {
         const { latitude, longitude, radius = 1000 } = req.query
@@ -1054,131 +736,6 @@ export const getTouristsByLocation = async (req, res) => {
     }
 }
 
-/**
- * @swagger
- * /api/tracking/location/history/all/{touristId}:
- *   get:
- *     summary: Get complete location history for a specific tourist
- *     description: Retrieves all location history records for a specified tourist with optional filtering and pagination
- *     tags: [Tracking]
- *     security:
- *       - FirebaseAuth: []
- *     parameters:
- *       - in: path
- *         name: touristId
- *         required: true
- *         schema:
- *           type: string
- *         description: Tourist ID to get location history for
- *       - in: query
- *         name: startDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Start date for filtering (YYYY-MM-DD)
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: End date for filtering (YYYY-MM-DD)
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 1000
- *           maximum: 10000
- *         description: Maximum number of records to return
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Number of records to skip for pagination
- *       - in: query
- *         name: source
- *         schema:
- *           type: string
- *           enum: [gps, network, manual, iot_device, emergency]
- *         description: Filter by location source
- *       - in: query
- *         name: format
- *         schema:
- *           type: string
- *           enum: [json, geojson, csv]
- *           default: json
- *         description: Response format
- *     responses:
- *       200:
- *         description: Location history retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               allOf:
- *                 - $ref: '#/components/schemas/SuccessResponse'
- *                 - type: object
- *                   properties:
- *                     data:
- *                       type: object
- *                       properties:
- *                         touristId:
- *                           type: string
- *                         touristName:
- *                           type: string
- *                         totalRecords:
- *                           type: integer
- *                         returnedRecords:
- *                           type: integer
- *                         timeRange:
- *                           type: object
- *                           properties:
- *                             startDate:
- *                               type: string
- *                               format: date-time
- *                             endDate:
- *                               type: string
- *                               format: date-time
- *                         locations:
- *                           type: array
- *                           items:
- *                             type: object
- *                             properties:
- *                               id:
- *                                 type: string
- *                               latitude:
- *                                 type: number
- *                               longitude:
- *                                 type: number
- *                               accuracy:
- *                                 type: number
- *                               speed:
- *                                 type: number
- *                               heading:
- *                                 type: number
- *                               altitude:
- *                                 type: number
- *                               batteryLevel:
- *                                 type: number
- *                               timestamp:
- *                                 type: string
- *                                 format: date-time
- *                               source:
- *                                 type: string
- *                               networkInfo:
- *                                 type: object
- *                               context:
- *                                 type: object
- *       400:
- *         description: Invalid parameters
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Access denied - can only access own data or authorized data
- *       404:
- *         description: Tourist not found
- *       500:
- *         description: Internal server error
- */
 export const getUserLocationHistory = async (req, res) => {
     try {
         const { touristId } = req.params;
@@ -1366,55 +923,6 @@ export const getUserLocationHistory = async (req, res) => {
     }
 };
 
-/**
- * @swagger
- * /api/tracking/location/history/my:
- *   get:
- *     summary: Get current user's complete location history
- *     description: Retrieves all location history for the authenticated user
- *     tags: [Tracking]
- *     security:
- *       - FirebaseAuth: []
- *     parameters:
- *       - in: query
- *         name: startDate
- *         schema:
- *           type: string
- *           format: date
- *         description: Start date for filtering (YYYY-MM-DD)
- *       - in: query
- *         name: endDate
- *         schema:
- *           type: string
- *           format: date
- *         description: End date for filtering (YYYY-MM-DD)
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 1000
- *         description: Maximum number of records to return
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Number of records to skip for pagination
- *       - in: query
- *         name: format
- *         schema:
- *           type: string
- *           enum: [json, geojson, csv]
- *           default: json
- *         description: Response format
- *     responses:
- *       200:
- *         description: Location history retrieved successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Tourist profile not found
- */
 export const getMyLocationHistory = async (req, res) => {
     try {
         if (!req.user || !req.user.uid) {

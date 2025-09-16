@@ -21,8 +21,6 @@ class FabricService {
                 console.log('Fabric network is disabled. Enable with FABRIC_NETWORK_ENABLED=true');
                 return;
             }
-
-            // Load connection profile
             const ccpPath = path.resolve(__dirname, '..', 'fabric-network', 'connection-profiles', 'connection-profile.json');
             
             if (!fs.existsSync(ccpPath)) {
@@ -32,15 +30,13 @@ class FabricService {
             
             const ccp = JSON.parse(fs.readFileSync(ccpPath, 'utf8'));
             this.connectionProfile = ccp;
-
-            // Create wallet
             const walletPath = path.resolve(__dirname, '..', 'fabric-network', 'wallet');
             this.wallet = await Wallets.newFileSystemWallet(walletPath);
 
             console.log('Fabric service initialized successfully');
         } catch (error) {
             console.error('Failed to initialize Fabric service:', error);
-            // Don't throw error to allow server to start without Fabric
+            
         }
     }
 
@@ -49,18 +45,14 @@ class FabricService {
             if (!this.networkEnabled) {
                 throw new Error('Fabric network is disabled');
             }
-
-            // Check if user exists in wallet
             const identity = await this.wallet.get(userId);
             if (!identity) {
                 console.warn(`Identity for user ${userId} does not exist in wallet. Creating mock identity for development.`);
                 await this.createMockIdentity(userId);
             }
-
-            // Create gateway
             this.gateway = new Gateway();
             
-            // Connect to gateway
+            
             await this.gateway.connect(this.connectionProfile, {
                 wallet: this.wallet,
                 identity: userId,
@@ -76,7 +68,7 @@ class FabricService {
     }
 
     async createMockIdentity(userId) {
-        // Create a mock identity for development
+        
         const identity = {
             credentials: {
                 certificate: '-----BEGIN CERTIFICATE-----\nMOCK_CERTIFICATE\n-----END CERTIFICATE-----',
@@ -113,8 +105,6 @@ class FabricService {
         }
     }
 
-    // ========== DIGITAL TOURIST ID METHODS ==========
-
     async issueTouristID(touristData) {
         try {
             if (!this.networkEnabled) {
@@ -127,15 +117,15 @@ class FabricService {
             const digitalIdData = {
                 issuerDID: 'did:tourismdept:gov-ts',
                 expiryDate: touristData.expiryDate,
-                kycDocument: touristData.ocrData, // OCR extracted data for hash generation
-                documentType: touristData.documentType // 'PASSPORT' or 'AADHAAR'
+                kycDocument: touristData.ocrData, 
+                documentType: touristData.documentType 
             };
 
             const result = await contract.submitTransaction('issueTouristID', JSON.stringify(digitalIdData));
-            return result.toString(); // Returns the DID
+            return result.toString(); 
         } catch (error) {
             console.error('Failed to issue tourist digital ID:', error);
-            // Return mock DID in case of error for development
+            
             return `did:tourist:mock-${Date.now()}`;
         }
     }
@@ -188,14 +178,12 @@ class FabricService {
         }
     }
 
-    // ========== TRAVEL ITINERARY LOG METHODS ==========
-
     async addItineraryEntry(itineraryData) {
         try {
             const contract = await this.getContract('travel-channel', 'travel-itinerary-log');
             
             const result = await contract.submitTransaction('addItineraryEntry', JSON.stringify(itineraryData));
-            return result.toString(); // Returns entry ID
+            return result.toString(); 
         } catch (error) {
             console.error('Failed to add itinerary entry:', error);
             throw error;
@@ -250,14 +238,12 @@ class FabricService {
         }
     }
 
-    // ========== INCIDENT LOG METHODS ==========
-
     async logIncident(incidentData) {
         try {
             const contract = await this.getContract('incidents-channel', 'incident-log');
             
             const result = await contract.submitTransaction('logIncident', JSON.stringify(incidentData));
-            return result.toString(); // Returns incident ID
+            return result.toString(); 
         } catch (error) {
             console.error('Failed to log incident:', error);
             throw error;
@@ -281,7 +267,7 @@ class FabricService {
             const contract = await this.getContract('incidents-channel', 'incident-log');
             
             const result = await contract.submitTransaction('addIncidentAction', incidentId, JSON.stringify(actionData));
-            return result.toString(); // Returns action ID
+            return result.toString(); 
         } catch (error) {
             console.error('Failed to add incident action:', error);
             throw error;
@@ -347,8 +333,6 @@ class FabricService {
             throw error;
         }
     }
-
-    // ========== EVENT LISTENING ==========
 
     async startEventListener(channelName, chaincodeName, eventName, callback) {
         try {

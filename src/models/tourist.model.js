@@ -28,14 +28,14 @@ const touristSchema = new mongoose.Schema({
         phone: {
             type: String,
             required: function() {
-                // Phone is required only if profile completion stage is beyond 'initial'
+                
                 return this.profileCompletionStage !== 'initial';
             },
             trim: true,
             validate: {
                 validator: function(v) {
-                    // If phone is provided, it should be valid format
-                    if (!v) return true; // Allow empty for initial stage
+                    
+                    if (!v) return true; 
                     return /^[+]?[\d\s\-\(\)]+$/.test(v) && v.length >= 10;
                 },
                 message: 'Phone number must be valid international format'
@@ -44,14 +44,14 @@ const touristSchema = new mongoose.Schema({
         nationality: {
             type: String,
             required: function() {
-                // Nationality is required only if profile completion stage is beyond 'initial'
+                
                 return this.profileCompletionStage !== 'initial';
             },
             trim: true,
             validate: {
                 validator: function(v) {
-                    // If nationality is provided, it should not be placeholder values
-                    if (!v) return true; // Allow empty for initial stage
+                    
+                    if (!v) return true; 
                     return v.length >= 2 && !['unknown', 'not specified', 'n/a'].includes(v.toLowerCase());
                 },
                 message: 'Please provide a valid nationality'

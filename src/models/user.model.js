@@ -43,14 +43,10 @@ const userSchema = new mongoose.Schema({
     timestamps: true,
     versionKey: false
 });
-
-
 userSchema.methods.updateLastLogin = function() {
     this.lastLogin = new Date();
     return this.save();
 };
-
-
 userSchema.statics.findByFirebaseUid = function(firebaseUid) {
     return this.findOne({ firebaseUid });
 };

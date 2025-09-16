@@ -24,7 +24,7 @@ const options = {
                 }
             },
             schemas: {
-                // User and Authentication Schemas
+                
                 User: {
                     type: 'object',
                     properties: {
@@ -49,7 +49,7 @@ const options = {
                     }
                 },
                 
-                // Tourist Schema
+                
                 Tourist: {
                     type: 'object',
                     properties: {
@@ -84,7 +84,7 @@ const options = {
                     }
                 },
                 
-                // Location History Schema
+                
                 LocationHistory: {
                     type: 'object',
                     properties: {
@@ -108,7 +108,7 @@ const options = {
                     }
                 },
                 
-                // Alert Schema
+                
                 Alert: {
                     type: 'object',
                     properties: {
@@ -138,7 +138,7 @@ const options = {
                     }
                 },
                 
-                // Device Schema
+                
                 Device: {
                     type: 'object',
                     properties: {
@@ -167,7 +167,7 @@ const options = {
                     }
                 },
                 
-                // GeoFence Schema
+                
                 GeoFence: {
                     type: 'object',
                     properties: {
@@ -199,7 +199,7 @@ const options = {
                     }
                 },
                 
-                // Incident Schema
+                
                 Incident: {
                     type: 'object',
                     properties: {
@@ -233,7 +233,7 @@ const options = {
                     }
                 },
                 
-                // Digital ID Schema
+                
                 DigitalId: {
                     type: 'object',
                     properties: {
@@ -269,7 +269,7 @@ const options = {
                     }
                 },
                 
-                // OCR Schema
+                
                 OCRResult: {
                     type: 'object',
                     properties: {
@@ -289,7 +289,7 @@ const options = {
                     }
                 },
                 
-                // Response Schemas
+                
                 SuccessResponse: {
                     type: 'object',
                     properties: {
@@ -321,7 +321,7 @@ const options = {
                     }
                 },
                 
-                // Data Response Schema
+                
                 DataResponse: {
                     type: 'object',
                     allOf: [
@@ -338,7 +338,7 @@ const options = {
                     ]
                 },
                 
-                // Location Update Request
+                
                 LocationUpdateRequest: {
                     type: 'object',
                     required: ['touristId', 'latitude', 'longitude'],
@@ -400,7 +400,7 @@ const options = {
                     }
                 },
                 
-                // Geofence Create Request
+                
                 GeofenceCreateRequest: {
                     type: 'object',
                     required: ['name', 'type', 'geometry'],
@@ -556,6 +556,162 @@ const options = {
                     }
                 }
             },
+            '/api/users/profile': {
+                get: {
+                    summary: 'Get tourist profile',
+                    description: 'Retrieve the current user\'s tourist profile information',
+                    tags: ['User Management'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Tourist profile retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            profile: {
+                                                                $ref: '#/components/schemas/User'
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Profile not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                },
+                put: {
+                    summary: 'Update tourist profile',
+                    description: 'Update the current user\'s tourist profile information',
+                    tags: ['User Management'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        personalInfo: {
+                                            type: 'object',
+                                            properties: {
+                                                name: { type: 'string' },
+                                                phone: { type: 'string' },
+                                                dateOfBirth: { type: 'string', format: 'date' },
+                                                nationality: { type: 'string' },
+                                                address: { type: 'string' }
+                                            }
+                                        },
+                                        emergencyContacts: {
+                                            type: 'array',
+                                            items: {
+                                                type: 'object',
+                                                properties: {
+                                                    name: { type: 'string' },
+                                                    phone: { type: 'string' },
+                                                    relationship: { type: 'string' }
+                                                }
+                                            }
+                                        },
+                                        preferences: {
+                                            type: 'object',
+                                            properties: {
+                                                language: { type: 'string' },
+                                                notifications: {
+                                                    type: 'object',
+                                                    properties: {
+                                                        push: { type: 'boolean' },
+                                                        sms: { type: 'boolean' },
+                                                        email: { type: 'boolean' }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Profile updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            profile: { $ref: '#/components/schemas/User' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/users/profile/status': {
+                get: {
+                    summary: 'Get profile completion status',
+                    description: 'Check the completion status of the user\'s profile',
+                    tags: ['User Management'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Profile status retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            completionPercentage: { type: 'number' },
+                                                            missingFields: {
+                                                                type: 'array',
+                                                                items: { type: 'string' }
+                                                            },
+                                                            stage: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
             '/api/ocr/process': {
                 post: {
                     summary: 'Process document with OCR',
@@ -647,10 +803,957 @@ const options = {
                         }
                     }
                 }
+            },
+            '/api/tracking/location/update/me': {
+                post: {
+                    summary: 'Update my location',
+                    description: 'Update the current user\'s location coordinates',
+                    tags: ['Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: { $ref: '#/components/schemas/LocationUpdateRequest' }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Location updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            location: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    latitude: { type: 'number' },
+                                                                    longitude: { type: 'number' },
+                                                                    timestamp: { type: 'string', format: 'date-time' },
+                                                                    accuracy: { type: 'number' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/location/update': {
+                post: {
+                    summary: 'Update tourist location',
+                    description: 'Update location for a specific tourist (admin function)',
+                    tags: ['Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    allOf: [
+                                        { $ref: '#/components/schemas/LocationUpdateRequest' },
+                                        {
+                                            type: 'object',
+                                            properties: {
+                                                touristId: { type: 'string' }
+                                            },
+                                            required: ['touristId']
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Location updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/SuccessResponse' }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/location/current/me': {
+                get: {
+                    summary: 'Get my current location',
+                    description: 'Retrieve the current user\'s latest location',
+                    tags: ['Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Current location retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            currentLocation: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    latitude: { type: 'number' },
+                                                                    longitude: { type: 'number' },
+                                                                    timestamp: { type: 'string', format: 'date-time' },
+                                                                    accuracy: { type: 'number' },
+                                                                    address: { type: 'string' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Location not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/location/current/{touristId}': {
+                get: {
+                    summary: 'Get tourist current location',
+                    description: 'Retrieve current location for a specific tourist',
+                    tags: ['Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'touristId',
+                            in: 'path',
+                            required: true,
+                            schema: { type: 'string' },
+                            description: 'Tourist ID'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Tourist location retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            currentLocation: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    latitude: { type: 'number' },
+                                                                    longitude: { type: 'number' },
+                                                                    timestamp: { type: 'string', format: 'date-time' },
+                                                                    accuracy: { type: 'number' },
+                                                                    address: { type: 'string' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/location/heatmap': {
+                get: {
+                    summary: 'Get location heatmap data',
+                    description: 'Retrieve heatmap data for tourist locations',
+                    tags: ['Location Tracking'],
+                    parameters: [
+                        {
+                            name: 'bounds',
+                            in: 'query',
+                            schema: { type: 'string' },
+                            description: 'Geographic bounds for heatmap (lat1,lng1,lat2,lng2)'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Heatmap data retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            heatmapData: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        latitude: { type: 'number' },
+                                                                        longitude: { type: 'number' },
+                                                                        intensity: { type: 'number' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/tracking/location/nearby': {
+                get: {
+                    summary: 'Get nearby tourists',
+                    description: 'Find tourists near a specific location',
+                    tags: ['Location Tracking'],
+                    parameters: [
+                        {
+                            name: 'lat',
+                            in: 'query',
+                            required: true,
+                            schema: { type: 'number' },
+                            description: 'Latitude'
+                        },
+                        {
+                            name: 'lng',
+                            in: 'query',
+                            required: true,
+                            schema: { type: 'number' },
+                            description: 'Longitude'
+                        },
+                        {
+                            name: 'radius',
+                            in: 'query',
+                            schema: { type: 'number' },
+                            description: 'Search radius in kilometers'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Nearby tourists retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            tourists: {
+                                                                type: 'array',
+                                                                items: { $ref: '#/components/schemas/User' }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            '/api/tracking/location/history/me': {
+                get: {
+                    summary: 'Get my location history',
+                    description: 'Retrieve the current user\'s location history',
+                    tags: ['Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'startDate',
+                            in: 'query',
+                            schema: { type: 'string', format: 'date' },
+                            description: 'Start date for history (YYYY-MM-DD)'
+                        },
+                        {
+                            name: 'endDate',
+                            in: 'query',
+                            schema: { type: 'string', format: 'date' },
+                            description: 'End date for history (YYYY-MM-DD)'
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            schema: { type: 'integer' },
+                            description: 'Maximum number of records to return'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Location history retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            history: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        latitude: { type: 'number' },
+                                                                        longitude: { type: 'number' },
+                                                                        timestamp: { type: 'string', format: 'date-time' },
+                                                                        accuracy: { type: 'number' },
+                                                                        address: { type: 'string' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/location/history/{touristId}': {
+                get: {
+                    summary: 'Get tourist location history',
+                    description: 'Retrieve location history for a specific tourist',
+                    tags: ['Location Tracking'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'touristId',
+                            in: 'path',
+                            required: true,
+                            schema: { type: 'string' },
+                            description: 'Tourist ID'
+                        },
+                        {
+                            name: 'startDate',
+                            in: 'query',
+                            schema: { type: 'string', format: 'date' },
+                            description: 'Start date for history (YYYY-MM-DD)'
+                        },
+                        {
+                            name: 'endDate',
+                            in: 'query',
+                            schema: { type: 'string', format: 'date' },
+                            description: 'End date for history (YYYY-MM-DD)'
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            schema: { type: 'integer' },
+                            description: 'Maximum number of records to return'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Tourist location history retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            history: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        latitude: { type: 'number' },
+                                                                        longitude: { type: 'number' },
+                                                                        timestamp: { type: 'string', format: 'date-time' },
+                                                                        accuracy: { type: 'number' },
+                                                                        address: { type: 'string' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/stats': {
+                get: {
+                    summary: 'Get tourist statistics',
+                    description: 'Retrieve statistics for the current tourist',
+                    tags: ['Statistics'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Statistics retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            totalDistance: { type: 'number' },
+                                                            placesVisited: { type: 'integer' },
+                                                            activeDays: { type: 'integer' },
+                                                            safetyScore: { type: 'number' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/devices/connected': {
+                get: {
+                    summary: 'Get connected devices',
+                    description: 'Retrieve list of connected devices for the current tourist',
+                    tags: ['Statistics'],
+                    security: [{ FirebaseAuth: [] }],
+                    responses: {
+                        200: {
+                            description: 'Connected devices retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            devices: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        deviceId: { type: 'string' },
+                                                                        deviceType: { type: 'string' },
+                                                                        lastSeen: { type: 'string', format: 'date-time' },
+                                                                        status: { type: 'string' }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/alerts/active': {
+                get: {
+                    summary: 'Get active alerts',
+                    description: 'Retrieve active alerts for the current tourist',
+                    tags: ['Emergency Alerts'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'page',
+                            in: 'query',
+                            schema: { type: 'integer' },
+                            description: 'Page number for pagination'
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            schema: { type: 'integer' },
+                            description: 'Number of alerts per page'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Active alerts retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            alerts: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        _id: { type: 'string' },
+                                                                        type: { type: 'string' },
+                                                                        severity: { type: 'string' },
+                                                                        message: { type: 'string' },
+                                                                        location: {
+                                                                            type: 'object',
+                                                                            properties: {
+                                                                                latitude: { type: 'number' },
+                                                                                longitude: { type: 'number' }
+                                                                            }
+                                                                        },
+                                                                        timestamp: { type: 'string', format: 'date-time' },
+                                                                        acknowledged: { type: 'boolean' }
+                                                                    }
+                                                                }
+                                                            },
+                                                            pagination: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    page: { type: 'integer' },
+                                                                    limit: { type: 'integer' },
+                                                                    total: { type: 'integer' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/alerts/acknowledge/{alertId}': {
+                post: {
+                    summary: 'Acknowledge alert',
+                    description: 'Mark an alert as acknowledged',
+                    tags: ['Emergency Alerts'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'alertId',
+                            in: 'path',
+                            required: true,
+                            schema: { type: 'string' },
+                            description: 'Alert ID to acknowledge'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Alert acknowledged successfully',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/SuccessResponse' }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Alert not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/alerts/emergency/me': {
+                post: {
+                    summary: 'Create emergency alert (self)',
+                    description: 'Create an emergency alert for the current user',
+                    tags: ['Emergency Alerts'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        latitude: { type: 'number' },
+                                        longitude: { type: 'number' },
+                                        type: { type: 'string', enum: ['medical', 'security', 'accident', 'other'] },
+                                        message: { type: 'string' },
+                                        severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }
+                                    },
+                                    required: ['latitude', 'longitude', 'type']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Emergency alert created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            alertId: { type: 'string' },
+                                                            status: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/alerts/emergency': {
+                post: {
+                    summary: 'Create emergency alert for tourist',
+                    description: 'Create an emergency alert for a specific tourist (admin function)',
+                    tags: ['Emergency Alerts'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        touristId: { type: 'string' },
+                                        latitude: { type: 'number' },
+                                        longitude: { type: 'number' },
+                                        type: { type: 'string', enum: ['medical', 'security', 'accident', 'other'] },
+                                        message: { type: 'string' },
+                                        severity: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] }
+                                    },
+                                    required: ['touristId', 'latitude', 'longitude', 'type']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Emergency alert created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            alertId: { type: 'string' },
+                                                            status: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Tourist not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/geofences': {
+                get: {
+                    summary: 'Get geofences',
+                    description: 'Retrieve list of geofences with pagination',
+                    tags: ['Geofencing'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'page',
+                            in: 'query',
+                            schema: { type: 'integer' },
+                            description: 'Page number for pagination'
+                        },
+                        {
+                            name: 'limit',
+                            in: 'query',
+                            schema: { type: 'integer' },
+                            description: 'Number of geofences per page'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Geofences retrieved successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            geofences: {
+                                                                type: 'array',
+                                                                items: {
+                                                                    type: 'object',
+                                                                    properties: {
+                                                                        _id: { type: 'string' },
+                                                                        name: { type: 'string' },
+                                                                        type: { type: 'string' },
+                                                                        center: {
+                                                                            type: 'object',
+                                                                            properties: {
+                                                                                latitude: { type: 'number' },
+                                                                                longitude: { type: 'number' }
+                                                                            }
+                                                                        },
+                                                                        radius: { type: 'number' },
+                                                                        active: { type: 'boolean' },
+                                                                        createdAt: { type: 'string', format: 'date-time' }
+                                                                    }
+                                                                }
+                                                            },
+                                                            pagination: {
+                                                                type: 'object',
+                                                                properties: {
+                                                                    page: { type: 'integer' },
+                                                                    limit: { type: 'integer' },
+                                                                    total: { type: 'integer' }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                },
+                post: {
+                    summary: 'Create geofence',
+                    description: 'Create a new geofence',
+                    tags: ['Geofencing'],
+                    security: [{ FirebaseAuth: [] }],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        name: { type: 'string' },
+                                        type: { type: 'string', enum: ['safe_zone', 'danger_zone', 'restricted_area'] },
+                                        center: {
+                                            type: 'object',
+                                            properties: {
+                                                latitude: { type: 'number' },
+                                                longitude: { type: 'number' }
+                                            },
+                                            required: ['latitude', 'longitude']
+                                        },
+                                        radius: { type: 'number' },
+                                        description: { type: 'string' }
+                                    },
+                                    required: ['name', 'type', 'center', 'radius']
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        201: {
+                            description: 'Geofence created successfully',
+                            content: {
+                                'application/json': {
+                                    schema: {
+                                        allOf: [
+                                            { $ref: '#/components/schemas/SuccessResponse' },
+                                            {
+                                                type: 'object',
+                                                properties: {
+                                                    data: {
+                                                        type: 'object',
+                                                        properties: {
+                                                            geofenceId: { type: 'string' }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
+            },
+            '/api/tracking/geofences/{fenceId}': {
+                put: {
+                    summary: 'Update geofence',
+                    description: 'Update an existing geofence',
+                    tags: ['Geofencing'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'fenceId',
+                            in: 'path',
+                            required: true,
+                            schema: { type: 'string' },
+                            description: 'Geofence ID to update'
+                        }
+                    ],
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    type: 'object',
+                                    properties: {
+                                        name: { type: 'string' },
+                                        type: { type: 'string', enum: ['safe_zone', 'danger_zone', 'restricted_area'] },
+                                        center: {
+                                            type: 'object',
+                                            properties: {
+                                                latitude: { type: 'number' },
+                                                longitude: { type: 'number' }
+                                            }
+                                        },
+                                        radius: { type: 'number' },
+                                        description: { type: 'string' },
+                                        active: { type: 'boolean' }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    responses: {
+                        200: {
+                            description: 'Geofence updated successfully',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/SuccessResponse' }
+                                }
+                            }
+                        },
+                        400: { description: 'Bad request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                },
+                delete: {
+                    summary: 'Delete geofence',
+                    description: 'Delete an existing geofence',
+                    tags: ['Geofencing'],
+                    security: [{ FirebaseAuth: [] }],
+                    parameters: [
+                        {
+                            name: 'fenceId',
+                            in: 'path',
+                            required: true,
+                            schema: { type: 'string' },
+                            description: 'Geofence ID to delete'
+                        }
+                    ],
+                    responses: {
+                        200: {
+                            description: 'Geofence deleted successfully',
+                            content: {
+                                'application/json': {
+                                    schema: { $ref: '#/components/schemas/SuccessResponse' }
+                                }
+                            }
+                        },
+                        401: { description: 'Unauthorized', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}},
+                        404: { description: 'Geofence not found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' }}}}
+                    }
+                }
             }
         }
     },
-    apis: ['./src/controllers/*.js', './src/routes/*.js'], // Scan controller and route files for JSDoc comments
+    apis: ['./src/controllers/*.js', './src/routes/*.js'], 
 };
 
 const specs = swaggerJSDoc(options);

@@ -71,7 +71,7 @@ const incidentSchema = new mongoose.Schema({
         involvedPersons: [String]
     },
     response: {
-        evirNumber: String, // Electronic FIR number
+        evirNumber: String, 
         assignedOfficer: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'

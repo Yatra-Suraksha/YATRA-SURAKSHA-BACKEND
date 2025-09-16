@@ -15,21 +15,21 @@ const fileFilter = (req, file, cb) => {
         'image/bmp',
         'image/tiff',
         'image/tif',
-        'application/octet-stream' // Added to handle files with incorrect MIME type
+        'application/octet-stream' 
     ];
     
-    // Also check file extension as fallback
+    
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'];
     const fileExtension = file.originalname.toLowerCase().substring(file.originalname.lastIndexOf('.'));
     
     console.log(`Uploaded file: ${file.originalname}, MIME type: ${file.mimetype}, Extension: ${fileExtension}`);
     
-    // Check both MIME type and file extension
+    
     const isValidMimeType = allowedMimeTypes.includes(file.mimetype.toLowerCase());
     const isValidExtension = allowedExtensions.includes(fileExtension);
     
     if (isValidMimeType || isValidExtension) {
-        // If it's application/octet-stream but has image extension, assume it's an image
+        
         if (file.mimetype === 'application/octet-stream' && isValidExtension) {
             console.log(`📸 Accepting file with octet-stream MIME type due to valid image extension: ${fileExtension}`);
         }
