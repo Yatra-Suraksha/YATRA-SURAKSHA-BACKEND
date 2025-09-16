@@ -248,7 +248,9 @@ export const getTouristProfile = async (req, res) => {
                 error: 'UNAUTHORIZED'
             });
         }
-        const touristProfile = await createAutomaticTouristProfile(req.user);
+
+        // Get existing profile from database - DON'T create or update
+        const touristProfile = await Tourist.findOne({ firebaseUid: req.user.uid });
 
         if (!touristProfile) {
             return res.status(404).json({
@@ -284,7 +286,16 @@ export const updateTouristProfile = async (req, res) => {
                 error: 'UNAUTHORIZED'
             });
         }
-        let touristProfile = await createAutomaticTouristProfile(req.user);
+        // Get existing profile from database - DON'T create or override
+        let touristProfile = await Tourist.findOne({ firebaseUid: req.user.uid });
+        
+        if (!touristProfile) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist profile not found',
+                error: 'PROFILE_NOT_FOUND'
+            });
+        }
 
         const allowedUpdates = ['personalInfo', 'emergencyContacts', 'preferences', 'travelItinerary', 'riskProfile'];
         const updates = {};
@@ -294,11 +305,11 @@ export const updateTouristProfile = async (req, res) => {
             }
         }
         if (req.body.personalInfo) {
+            // Merge existing personalInfo with updates - ALLOW name to be updated
             updates.personalInfo = {
                 ...touristProfile.personalInfo.toObject(),
-                ...req.body.personalInfo,
-                name: touristProfile.personalInfo.name, 
-                email: touristProfile.personalInfo.email 
+                ...req.body.personalInfo
+                // Removed the override lines - now name and other fields can be updated
             };
         }
         const hasPhone = updates.personalInfo?.phone || touristProfile.personalInfo.phone;
