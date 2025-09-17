@@ -8,6 +8,56 @@ const options = {
             version: '1.0.0',
             description: 'Authentication API for Yatra Suraksha Travel App',
         },
+        tags: [
+            {
+                name: '🔐 Mobile App - Authentication',
+                description: 'Firebase authentication endpoints for mobile app users'
+            },
+            {
+                name: '📱 Mobile App - Profile Management',
+                description: 'Tourist profile management endpoints for mobile app'
+            },
+            {
+                name: '📱 Mobile App - Document Processing',
+                description: 'OCR and document processing endpoints for mobile app'
+            },
+            {
+                name: '📱 Mobile App - Location Tracking',
+                description: 'Location tracking and history endpoints for mobile app'
+            },
+            {
+                name: '📱 Mobile App - Statistics',
+                description: 'Personal statistics and analytics for mobile app users'
+            },
+            {
+                name: '📱 Mobile App - Device Management',
+                description: 'Device management and connectivity for mobile app'
+            },
+            {
+                name: '📱 Mobile App - Emergency Alerts',
+                description: 'Emergency alert management for mobile app users'
+            },
+            {
+                name: '🌐 Admin Website - Location Management',
+                description: 'Admin endpoints for tourist location monitoring and management'
+            },
+            {
+                name: '🌐 Admin Website - Analytics',
+                description: 'Admin endpoints for data analytics and heatmaps'
+            },
+            {
+                name: '🌐 Admin Website - Emergency Management',
+                description: 'Admin endpoints for emergency alert management'
+            },
+            {
+                name: '🌐 Admin Website - Geofencing',
+                description: 'Admin endpoints for geofence creation and management'
+            },
+            {
+                name: '🔧 System Health',
+                description: 'System health monitoring and service status endpoints'
+            }
+        ],
         servers: [
             {
                 url: 'http://localhost:3000',
@@ -436,7 +486,7 @@ const options = {
                 post: {
                     summary: 'Verify Firebase authentication token',
                     description: 'Verifies the provided Firebase ID token and returns user information',
-                    tags: ['Authentication'],
+                    tags: ['🔐 Mobile App - Authentication'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -498,7 +548,7 @@ const options = {
                 get: {
                     summary: 'Get current user information',
                     description: 'Retrieves current user information from Firebase token',
-                    tags: ['User'],
+                    tags: ['🔐 Mobile App - Authentication'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -560,7 +610,7 @@ const options = {
                 get: {
                     summary: 'Get tourist profile',
                     description: 'Retrieve the current user\'s tourist profile information',
-                    tags: ['User Management'],
+                    tags: ['📱 Mobile App - Profile Management'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -595,7 +645,7 @@ const options = {
                 put: {
                     summary: 'Update tourist profile',
                     description: 'Update the current user\'s tourist profile information',
-                    tags: ['User Management'],
+                    tags: ['📱 Mobile App - Profile Management'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -677,7 +727,7 @@ const options = {
                 get: {
                     summary: 'Get profile completion status',
                     description: 'Check the completion status of the user\'s profile',
-                    tags: ['User Management'],
+                    tags: ['📱 Mobile App - Profile Management'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -716,7 +766,7 @@ const options = {
                 post: {
                     summary: 'Process document with OCR',
                     description: 'Upload an Aadhaar card or passport image to extract name, DOB, address, and phone number',
-                    tags: ['OCR'],
+                    tags: ['📱 Mobile App - Document Processing'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -777,7 +827,7 @@ const options = {
                 get: {
                     summary: 'Check OCR service health',
                     description: 'Check if OCR service is running and configured properly',
-                    tags: ['OCR'],
+                    tags: ['🔧 System Health'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -808,7 +858,7 @@ const options = {
                 post: {
                     summary: 'Update my location',
                     description: 'Update the current user\'s location coordinates',
-                    tags: ['Location Tracking'],
+                    tags: ['📱 Mobile App - Location Tracking'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -859,7 +909,7 @@ const options = {
                 post: {
                     summary: 'Update tourist location',
                     description: 'Update location for a specific tourist (admin function)',
-                    tags: ['Location Tracking'],
+                    tags: ['🌐 Admin Website - Location Management'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -899,7 +949,7 @@ const options = {
                 get: {
                     summary: 'Get my current location',
                     description: 'Retrieve the current user\'s latest location',
-                    tags: ['Location Tracking'],
+                    tags: ['📱 Mobile App - Location Tracking'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -943,7 +993,7 @@ const options = {
                 get: {
                     summary: 'Get tourist current location',
                     description: 'Retrieve current location for a specific tourist',
-                    tags: ['Location Tracking'],
+                    tags: ['🌐 Admin Website - Location Management'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -996,7 +1046,7 @@ const options = {
                 get: {
                     summary: 'Get location heatmap data',
                     description: 'Retrieve heatmap data for tourist locations',
-                    tags: ['Location Tracking'],
+                    tags: ['🌐 Admin Website - Analytics'],
                     parameters: [
                         {
                             name: 'bounds',
@@ -1046,7 +1096,7 @@ const options = {
                 get: {
                     summary: 'Get nearby tourists',
                     description: 'Find tourists near a specific location',
-                    tags: ['Location Tracking'],
+                    tags: ['🌐 Admin Website - Location Management'],
                     parameters: [
                         {
                             name: 'lat',
@@ -1103,7 +1153,7 @@ const options = {
                 get: {
                     summary: 'Get my location history',
                     description: 'Retrieve the current user\'s location history',
-                    tags: ['Location Tracking'],
+                    tags: ['📱 Mobile App - Location Tracking'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -1169,7 +1219,7 @@ const options = {
                 get: {
                     summary: 'Get tourist location history',
                     description: 'Retrieve location history for a specific tourist',
-                    tags: ['Location Tracking'],
+                    tags: ['🌐 Admin Website - Location Management'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -1243,7 +1293,7 @@ const options = {
                 get: {
                     summary: 'Get tourist statistics',
                     description: 'Retrieve statistics for the current tourist',
-                    tags: ['Statistics'],
+                    tags: ['📱 Mobile App - Statistics'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -1280,7 +1330,7 @@ const options = {
                 get: {
                     summary: 'Get connected devices',
                     description: 'Retrieve list of connected devices for the current tourist',
-                    tags: ['Statistics'],
+                    tags: ['📱 Mobile App - Device Management'],
                     security: [{ FirebaseAuth: [] }],
                     responses: {
                         200: {
@@ -1325,7 +1375,7 @@ const options = {
                 get: {
                     summary: 'Get active alerts',
                     description: 'Retrieve active alerts for the current tourist',
-                    tags: ['Emergency Alerts'],
+                    tags: ['📱 Mobile App - Emergency Alerts'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -1401,7 +1451,7 @@ const options = {
                 post: {
                     summary: 'Acknowledge alert',
                     description: 'Mark an alert as acknowledged',
-                    tags: ['Emergency Alerts'],
+                    tags: ['📱 Mobile App - Emergency Alerts'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -1430,7 +1480,7 @@ const options = {
                 post: {
                     summary: 'Create emergency alert (self)',
                     description: 'Create an emergency alert for the current user',
-                    tags: ['Emergency Alerts'],
+                    tags: ['📱 Mobile App - Emergency Alerts'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -1484,7 +1534,7 @@ const options = {
                 post: {
                     summary: 'Create emergency alert for tourist',
                     description: 'Create an emergency alert for a specific tourist (admin function)',
-                    tags: ['Emergency Alerts'],
+                    tags: ['🌐 Admin Website - Emergency Management'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -1540,7 +1590,7 @@ const options = {
                 get: {
                     summary: 'Get geofences',
                     description: 'Retrieve list of geofences with pagination',
-                    tags: ['Geofencing'],
+                    tags: ['🌐 Admin Website - Geofencing'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -1614,7 +1664,7 @@ const options = {
                 post: {
                     summary: 'Create geofence',
                     description: 'Create a new geofence',
-                    tags: ['Geofencing'],
+                    tags: ['🌐 Admin Website - Geofencing'],
                     security: [{ FirebaseAuth: [] }],
                     requestBody: {
                         required: true,
@@ -1674,7 +1724,7 @@ const options = {
                 put: {
                     summary: 'Update geofence',
                     description: 'Update an existing geofence',
-                    tags: ['Geofencing'],
+                    tags: ['🌐 Admin Website - Geofencing'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
@@ -1726,7 +1776,7 @@ const options = {
                 delete: {
                     summary: 'Delete geofence',
                     description: 'Delete an existing geofence',
-                    tags: ['Geofencing'],
+                    tags: ['🌐 Admin Website - Geofencing'],
                     security: [{ FirebaseAuth: [] }],
                     parameters: [
                         {
