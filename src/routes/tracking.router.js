@@ -17,7 +17,7 @@ import {
     getMyLocationHistory
 } from '../controllers/tracking.controller.js'
 import { verifyFirebaseToken, optionalAuth } from '../middlewares/auth.middleware.js'
-import { 
+import {
     validateTouristExists, 
     validateOrCreateTourist,
     validateCoordinates, 
@@ -28,6 +28,10 @@ import {
     validatePagination,
     validateLocationHistoryParams
 } from '../middlewares/validation.middleware.js'
+import { 
+    requireAdminRole, 
+    validateGeofenceData 
+} from '../middlewares/geofence.middleware.js'
 
 const router = Router()
 router.use(sanitizeInput)
@@ -105,15 +109,23 @@ router.get('/geofences',
     validatePagination, 
     getGeofences
 )
-router.post('/geofences', verifyFirebaseToken, createGeofence)
+router.post('/geofences', 
+    verifyFirebaseToken, 
+    requireAdminRole,
+    validateGeofenceData,
+    createGeofence
+)
 router.put('/geofences/:fenceId', 
     verifyFirebaseToken,
+    requireAdminRole,
     validateObjectId('fenceId'), 
-    validateGeofenceExists, 
+    validateGeofenceExists,
+    validateGeofenceData, 
     updateGeofence
 )
 router.delete('/geofences/:fenceId', 
     verifyFirebaseToken,
+    requireAdminRole,
     validateObjectId('fenceId'), 
     validateGeofenceExists, 
     deleteGeofence

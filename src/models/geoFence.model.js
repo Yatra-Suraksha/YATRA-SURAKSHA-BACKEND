@@ -20,14 +20,28 @@ const geoFenceSchema = new mongoose.Schema({
     geometry: {
         type: {
             type: String,
-            enum: ['Polygon', 'Circle', 'Point'],
+            enum: ['Polygon', 'Point'], // Removed 'Circle' as it's not valid GeoJSON
             required: true
         },
         coordinates: {
             type: mongoose.Schema.Types.Mixed,
             required: true
-        },
-        radius: Number
+        }
+    },
+    radius: {
+        type: Number,
+        min: 1,
+        max: 50000, // Maximum 50km radius
+        validate: {
+            validator: function(value) {
+                // Radius is required only for Point geometry (circles)
+                if (this.geometry?.type === 'Point') {
+                    return value != null && value > 0;
+                }
+                return true;
+            },
+            message: 'Radius is required for circular geofences and must be greater than 0'
+        }
     },
     riskLevel: {
         type: Number,
@@ -85,13 +99,13 @@ const geoFenceSchema = new mongoose.Schema({
         index: true
     },
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        type: String,
+        required: true,
+        index: true
     },
     lastModifiedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        type: String,
+        index: true
     },
     statistics: {
         totalVisitors: {

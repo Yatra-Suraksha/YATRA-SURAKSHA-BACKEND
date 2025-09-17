@@ -478,13 +478,75 @@ export const createEmergencyAlert = async (req, res) => {
 
 export const getGeofences = async (req, res) => {
     try {
-        const geofences = await GeoFence.find().lean()
+        const { 
+            page = 1, 
+            limit = 10, 
+            type, 
+            isActive, 
+            riskLevel, 
+            search,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.query
+
+        // Build filter object
+        const filter = {}
+        
+        if (type) {
+            filter.type = type
+        }
+        
+        if (isActive !== undefined) {
+            filter.isActive = isActive === 'true'
+        }
+        
+        if (riskLevel) {
+            filter.riskLevel = parseInt(riskLevel)
+        }
+        
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ]
+        }
+
+        // Build sort object
+        const sort = {}
+        sort[sortBy] = sortOrder === 'desc' ? -1 : 1
+
+        // Calculate pagination
+        const skip = (parseInt(page) - 1) * parseInt(limit)
+        
+        // Execute query with pagination
+        const [geofences, totalCount] = await Promise.all([
+            GeoFence.find(filter)
+                .sort(sort)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .populate('createdBy', 'email name')
+                .populate('lastModifiedBy', 'email name')
+                .lean(),
+            GeoFence.countDocuments(filter)
+        ])
+
+        // Calculate pagination info
+        const totalPages = Math.ceil(totalCount / parseInt(limit))
+        const hasNextPage = parseInt(page) < totalPages
+        const hasPrevPage = parseInt(page) > 1
 
         res.json({
             success: true,
             data: {
                 geofences,
-                count: geofences.length
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages,
+                    totalCount,
+                    limit: parseInt(limit),
+                    hasNextPage,
+                    hasPrevPage
+                }
             }
         })
 
@@ -499,7 +561,7 @@ export const getGeofences = async (req, res) => {
 
 export const createGeofence = async (req, res) => {
     try {
-        const { name, coordinates, type, description, radius, riskLevel, alertMessage } = req.body
+        const { name, coordinates, type, description, radius, riskLevel, alertMessage, restrictions, metadata } = req.body
 
         if (!name || !coordinates) {
             return res.status(400).json({
@@ -508,51 +570,79 @@ export const createGeofence = async (req, res) => {
             })
         }
 
-        // Validate coordinates
-        if (!Array.isArray(coordinates)) {
-            return res.status(400).json({
+        // Ensure user is authenticated
+        if (!req.user?.uid) {
+            return res.status(401).json({
                 success: false,
-                message: 'Coordinates must be an array'
+                message: 'User authentication required'
             })
         }
 
-        // Validate geofence type
-        const validTypes = ['safe', 'warning', 'danger', 'restricted', 'emergency_services', 'accommodation', 'tourist_spot'];
-        if (type && !validTypes.includes(type)) {
-            return res.status(400).json({
+        // Check for duplicate names
+        const existingGeofence = await GeoFence.findOne({ 
+            name: name.trim(), 
+            isActive: true 
+        });
+        if (existingGeofence) {
+            return res.status(409).json({
                 success: false,
-                message: `Invalid geofence type. Must be one of: ${validTypes.join(', ')}`
-            })
+                message: 'A geofence with this name already exists'
+            });
         }
 
-        // Validate risk level
-        if (riskLevel !== undefined && (riskLevel < 1 || riskLevel > 10)) {
+        // Handle different coordinate formats
+        let processedCoordinates;
+        if (coordinates.latitude !== undefined && coordinates.longitude !== undefined) {
+            // Object format: { latitude: x, longitude: y }
+            processedCoordinates = [coordinates.longitude, coordinates.latitude];
+        } else if (Array.isArray(coordinates)) {
+            // Array format: [longitude, latitude] or [[lng, lat], [lng, lat], ...]
+            processedCoordinates = coordinates;
+        } else {
             return res.status(400).json({
                 success: false,
-                message: 'Risk level must be between 1 and 10'
-            })
+                message: 'Invalid coordinates format. Expected {latitude: number, longitude: number} or array format'
+            });
         }
 
-        // Create geofence with a default createdBy user (you might want to get this from auth)
+        // Create proper geometry based on type
+        let geometry;
+        if (radius) {
+            // For circles, store as Point with radius field
+            geometry = {
+                type: 'Point',
+                coordinates: processedCoordinates
+            };
+        } else {
+            // For polygons, store as Polygon
+            geometry = {
+                type: 'Polygon',
+                coordinates: [processedCoordinates] // Polygon needs array of arrays
+            };
+        }
+
+        // Create geofence with validated data
         const geofence = new GeoFence({
             name: name.trim(),
             type: type || 'warning',
             description: description?.trim(),
-            geometry: {
-                type: radius ? 'Circle' : 'Polygon',
-                coordinates: radius ? coordinates : [coordinates],
-                radius: radius
-            },
+            geometry: geometry,
+            radius: radius, // Store radius as separate field
             riskLevel: riskLevel || 5,
             alertMessage: alertMessage || {
                 english: `You are entering ${name}`,
                 hindi: `आप ${name} में प्रवेश कर रहे हैं`
             },
+            restrictions: restrictions || {},
+            metadata: metadata || {},
             isActive: true,
-            createdBy: req.user?.uid || 'system' // This should come from authentication
+            createdBy: req.user.uid
         })
 
         await geofence.save()
+
+        // Log geofence creation for audit
+        console.log(`Geofence created: ${geofence.name} by user: ${req.user.uid}`)
 
         res.status(201).json({
             success: true,
@@ -563,7 +653,8 @@ export const createGeofence = async (req, res) => {
                 type: geofence.type,
                 geometry: geofence.geometry,
                 riskLevel: geofence.riskLevel,
-                isActive: geofence.isActive
+                isActive: geofence.isActive,
+                createdAt: geofence.createdAt
             }
         })
 
@@ -597,27 +688,90 @@ export const updateGeofence = async (req, res) => {
         const { fenceId } = req.params
         const updates = req.body
 
-        const geofence = await GeoFence.findByIdAndUpdate(
-            fenceId,
-            updates,
-            { new: true }
-        )
-
-        if (!geofence) {
+        // Find existing geofence
+        const existingGeofence = await GeoFence.findById(fenceId)
+        if (!existingGeofence) {
             return res.status(404).json({
                 success: false,
                 message: 'Geofence not found'
             })
         }
 
+        // Check ownership or admin permission
+        const isOwner = existingGeofence.createdBy === req.user?.uid
+        const isAdmin = req.user?.email?.includes('@admin.yatrasuraksha.com') || 
+                       req.user?.email === process.env.ADMIN_EMAIL
+
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only update geofences you created'
+            })
+        }
+
+        // Validate and sanitize updates
+        const allowedUpdates = ['name', 'description', 'type', 'geometry', 'riskLevel', 'alertMessage', 'restrictions', 'metadata', 'isActive']
+        const sanitizedUpdates = {}
+
+        for (const key of Object.keys(updates)) {
+            if (allowedUpdates.includes(key)) {
+                sanitizedUpdates[key] = updates[key]
+            }
+        }
+
+        // Check for name conflicts if name is being updated
+        if (sanitizedUpdates.name && sanitizedUpdates.name !== existingGeofence.name) {
+            const duplicateName = await GeoFence.findOne({ 
+                name: sanitizedUpdates.name.trim(), 
+                _id: { $ne: fenceId },
+                isActive: true 
+            })
+            if (duplicateName) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'A geofence with this name already exists'
+                })
+            }
+        }
+
+        // Add audit trail
+        sanitizedUpdates.lastModifiedBy = req.user.uid
+        sanitizedUpdates.updatedAt = new Date()
+
+        const geofence = await GeoFence.findByIdAndUpdate(
+            fenceId,
+            sanitizedUpdates,
+            { new: true, runValidators: true }
+        )
+
+        // Log update for audit
+        console.log(`Geofence updated: ${geofence.name} by user: ${req.user.uid}`)
+
         res.json({
             success: true,
             message: 'Geofence updated successfully',
-            data: geofence
+            data: {
+                id: geofence._id,
+                name: geofence.name,
+                type: geofence.type,
+                geometry: geofence.geometry,
+                riskLevel: geofence.riskLevel,
+                isActive: geofence.isActive,
+                updatedAt: geofence.updatedAt
+            }
         })
 
     } catch (error) {
         console.error('Error updating geofence:', error)
+        
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                details: Object.values(error.errors).map(err => err.message)
+            })
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Failed to update geofence'
@@ -629,14 +783,49 @@ export const deleteGeofence = async (req, res) => {
     try {
         const { fenceId } = req.params
 
-        const geofence = await GeoFence.findByIdAndDelete(fenceId)
-
+        // Find the geofence first to check ownership
+        const geofence = await GeoFence.findById(fenceId)
         if (!geofence) {
             return res.status(404).json({
                 success: false,
                 message: 'Geofence not found'
             })
         }
+
+        // Check ownership or admin permission
+        const isOwner = geofence.createdBy === req.user?.uid
+        const isAdmin = req.user?.email?.includes('@admin.yatrasuraksha.com') || 
+                       req.user?.email === process.env.ADMIN_EMAIL
+
+        if (!isOwner && !isAdmin) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only delete geofences you created'
+            })
+        }
+
+        // Check if geofence is referenced in active alerts
+        const activeAlerts = await Alert.countDocuments({
+            geoFenceId: fenceId,
+            'acknowledgment.isAcknowledged': false
+        })
+
+        if (activeAlerts > 0) {
+            return res.status(409).json({
+                success: false,
+                message: `Cannot delete geofence. It has ${activeAlerts} active alerts. Please acknowledge all alerts first.`
+            })
+        }
+
+        // Soft delete - mark as inactive instead of hard delete for audit trail
+        await GeoFence.findByIdAndUpdate(fenceId, {
+            isActive: false,
+            deletedAt: new Date(),
+            deletedBy: req.user.uid
+        })
+
+        // Log deletion for audit
+        console.log(`Geofence soft-deleted: ${geofence.name} by user: ${req.user.uid}`)
 
         res.json({
             success: true,
