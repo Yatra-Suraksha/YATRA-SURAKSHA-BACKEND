@@ -39,7 +39,7 @@ const createAutomaticTouristProfile = async (firebaseUser) => {
             },
             currentLocation: {
                 type: 'Point',
-                coordinates: [77.2090, 28.6139],
+                coordinates: [null, null],
                 timestamp: new Date(),
                 accuracy: null,
                 address: 'Location not set - please update'
@@ -467,6 +467,87 @@ export const getProfileStatus = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to retrieve profile status',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'INTERNAL_ERROR'
+        });
+    }
+};
+
+// Admin-only routes (no authentication required)
+export const getAllTourists = async (req, res) => {
+    try {
+        const { page = 1, limit = 50, status, search } = req.query;
+        const skip = (page - 1) * limit;
+        
+        // Build query filters
+        const query = {};
+        if (status) {
+            query.status = status;
+        }
+        if (search) {
+            query.$or = [
+                { 'personalInfo.name': { $regex: search, $options: 'i' } },
+                { 'personalInfo.email': { $regex: search, $options: 'i' } },
+                { digitalId: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const tourists = await Tourist.find(query)
+            .select('-devices -travelItinerary -preferences')
+            .sort({ checkInTime: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const total = await Tourist.countDocuments(query);
+
+        res.status(200).json({
+            success: true,
+            message: 'Tourists retrieved successfully',
+            data: {
+                tourists,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error getting all tourists:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve tourists',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'INTERNAL_ERROR'
+        });
+    }
+};
+
+export const getTouristById = async (req, res) => {
+    try {
+        const { touristId } = req.params;
+        
+        const tourist = await Tourist.findById(touristId);
+        
+        if (!tourist) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist not found',
+                error: 'TOURIST_NOT_FOUND'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Tourist retrieved successfully',
+            data: {
+                tourist
+            }
+        });
+    } catch (error) {
+        console.error('Error getting tourist by ID:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to retrieve tourist',
             error: process.env.NODE_ENV === 'development' ? error.message : 'INTERNAL_ERROR'
         });
     }

@@ -41,7 +41,15 @@ const initializeFirebase = () => {
                 projectId: process.env.FIREBASE_PROJECT_ID
             });
             
-            console.log('Firebase Admin initialized successfully');
+            // Validate project ID consistency
+            if (serviceAccount.project_id !== process.env.FIREBASE_PROJECT_ID) {
+                console.warn('⚠️  WARNING: Service account project ID does not match FIREBASE_PROJECT_ID environment variable');
+                console.warn(`Service Account: ${serviceAccount.project_id}`);
+                console.warn(`Environment Variable: ${process.env.FIREBASE_PROJECT_ID}`);
+                console.warn('This may cause authentication issues with Google OAuth tokens');
+            }
+            
+            console.log(`✅ Firebase Admin initialized successfully for project: ${process.env.FIREBASE_PROJECT_ID}`);
             return firebaseApp;
         }
         else if (process.env.FIREBASE_PRIVATE_KEY) {

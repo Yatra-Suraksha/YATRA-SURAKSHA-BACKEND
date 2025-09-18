@@ -29,7 +29,6 @@ import {
     validateLocationHistoryParams
 } from '../middlewares/validation.middleware.js'
 import { 
-    requireAdminRole, 
     validateGeofenceData 
 } from '../middlewares/geofence.middleware.js'
 
@@ -73,21 +72,18 @@ router.get('/location/history/my',
     getMyLocationHistory
 )
 router.get('/location/history/:touristId', 
-    verifyFirebaseToken,
     validateObjectId('touristId'), 
     validateTouristExists,
     validateLocationHistoryParams,
     getUserLocationHistory
 )
-router.get('/stats', verifyFirebaseToken, getTouristStats)
-router.get('/devices/connected', verifyFirebaseToken, getConnectedDevices)
+router.get('/stats', getTouristStats)
+router.get('/devices/connected', getConnectedDevices)
 router.get('/alerts/active', 
-    verifyFirebaseToken, 
     validatePagination, 
     getActiveAlerts
 )
 router.post('/alerts/acknowledge/:alertId', 
-    verifyFirebaseToken,
     validateAlertExists, 
     acknowledgeAlert
 )
@@ -105,27 +101,20 @@ router.post('/alerts/emergency',
     createEmergencyAlert
 )
 router.get('/geofences', 
-    verifyFirebaseToken, 
     validatePagination, 
     getGeofences
 )
 router.post('/geofences', 
-    verifyFirebaseToken, 
-    requireAdminRole,
     validateGeofenceData,
     createGeofence
 )
 router.put('/geofences/:fenceId', 
-    verifyFirebaseToken,
-    requireAdminRole,
     validateObjectId('fenceId'), 
     validateGeofenceExists,
     validateGeofenceData, 
     updateGeofence
 )
 router.delete('/geofences/:fenceId', 
-    verifyFirebaseToken,
-    requireAdminRole,
     validateObjectId('fenceId'), 
     validateGeofenceExists, 
     deleteGeofence

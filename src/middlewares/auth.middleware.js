@@ -40,8 +40,30 @@ export const verifyFirebaseToken = async (req, res, next) => {
                 message: 'Invalid token format. Token must be a valid JWT.'
             });
         }
+        // Enhanced token verification with debugging
+        console.log(`🔍 Token verification attempt for token length: ${token.length}`);
+        console.log(`🔍 Token preview: ${token.substring(0, 50)}...`);
+        
         const decodedToken = await auth.verifyIdToken(token);
         
+        // Log detailed token information for debugging
+        console.log(`✅ Token verified successfully`);
+        console.log(`🔍 Decoded token details:`, {
+            uid: decodedToken.uid,
+            email: decodedToken.email,
+            emailVerified: decodedToken.email_verified,
+            name: decodedToken.name,
+            provider: decodedToken.firebase?.sign_in_provider,
+            authTime: decodedToken.auth_time,
+            issuedAt: decodedToken.iat,
+            expiresAt: decodedToken.exp,
+            audience: decodedToken.aud,
+            issuer: decodedToken.iss
+        });
+        
+        // Check if token is from Google OAuth vs email/password
+        const signInProvider = decodedToken.firebase?.sign_in_provider;
+        console.log(`🔍 Sign-in provider: ${signInProvider}`);
         
         req.user = {
             uid: decodedToken.uid,
@@ -49,25 +71,56 @@ export const verifyFirebaseToken = async (req, res, next) => {
             emailVerified: decodedToken.email_verified,
             name: decodedToken.name,
             picture: decodedToken.picture,
+            signInProvider: signInProvider,
             firebaseUser: decodedToken
         };
 
         next();
     } catch (error) {
+        // Enhanced error logging for debugging
+        console.error('🚨 Firebase token verification error:', error.message);
+        console.error('🚨 Error code:', error.code);
+        console.error('🚨 Error details:', error);
         
-        console.error('Firebase token verification error:', error.message);
-        
+        // Additional debugging for token structure
+        if (token) {
+            try {
+                const tokenParts = token.split('.');
+                console.log(`🔍 Token parts count: ${tokenParts.length}`);
+                if (tokenParts.length === 3) {
+                    // Decode JWT header and payload for debugging (without verification)
+                    const header = JSON.parse(Buffer.from(tokenParts[0], 'base64').toString());
+                    const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString());
+                    console.log(`🔍 Token header:`, header);
+                    console.log(`🔍 Token payload preview:`, {
+                        iss: payload.iss,
+                        aud: payload.aud,
+                        exp: payload.exp,
+                        iat: payload.iat,
+                        sub: payload.sub,
+                        provider: payload.firebase?.sign_in_provider
+                    });
+                }
+            } catch (decodeError) {
+                console.error('🚨 Failed to decode token for debugging:', decodeError.message);
+            }
+        }
         
         if (process.env.NODE_ENV === 'development') {
             console.error('Full error details:', error);
         }
         
-        
+        // Specific error handling for different Firebase auth errors
         if (error.code === 'auth/id-token-expired') {
             return res.status(401).json({
                 success: false,
                 message: 'Token has expired. Please login again.',
-                error: 'TOKEN_EXPIRED'
+                error: 'TOKEN_EXPIRED',
+                debug: process.env.NODE_ENV === 'development' ? {
+                    errorCode: error.code,
+                    tokenLength: token?.length,
+                    message: error.message
+                } : undefined
             });
         }
         
@@ -75,7 +128,12 @@ export const verifyFirebaseToken = async (req, res, next) => {
             return res.status(401).json({
                 success: false,
                 message: 'Invalid token format. Please provide a valid Firebase ID token.',
-                error: 'INVALID_TOKEN_FORMAT'
+                error: 'INVALID_TOKEN_FORMAT',
+                debug: process.env.NODE_ENV === 'development' ? {
+                    errorCode: error.code,
+                    tokenLength: token?.length,
+                    message: error.message
+                } : undefined
             });
         }
 
@@ -83,13 +141,37 @@ export const verifyFirebaseToken = async (req, res, next) => {
             return res.status(401).json({
                 success: false,
                 message: 'Token has been revoked. Please login again.',
-                error: 'TOKEN_REVOKED'
+                error: 'TOKEN_REVOKED',
+                debug: process.env.NODE_ENV === 'development' ? {
+                    errorCode: error.code,
+                    message: error.message
+                } : undefined
             });
         }
+        
+        // Check for project mismatch errors (common with Google OAuth)
+        if (error.message.includes('project') || error.message.includes('audience')) {
+            return res.status(401).json({
+                success: false,
+                message: 'Token was issued for a different Firebase project. Please ensure you are using the correct project configuration.',
+                error: 'PROJECT_MISMATCH',
+                debug: process.env.NODE_ENV === 'development' ? {
+                    errorCode: error.code,
+                    message: error.message,
+                    expectedProject: process.env.FIREBASE_PROJECT_ID
+                } : undefined
+            });
+        }
+        
         return res.status(401).json({
             success: false,
             message: 'Invalid or expired token. Please login again.',
-            error: 'AUTHENTICATION_FAILED'
+            error: 'AUTHENTICATION_FAILED',
+            debug: process.env.NODE_ENV === 'development' ? {
+                errorCode: error.code,
+                message: error.message,
+                tokenLength: token?.length
+            } : undefined
         });
     }
 };
