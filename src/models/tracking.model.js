@@ -44,7 +44,7 @@ const locationHistorySchema = new mongoose.Schema({
     },
     source: {
         type: String,
-        enum: ['gps', 'network', 'manual', 'iot_device', 'emergency'],
+        // enum: ['gps', 'network', 'manual', 'iot_device', 'emergency'],
         default: 'gps'
     },
     networkInfo: {
