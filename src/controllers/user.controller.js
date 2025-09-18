@@ -37,13 +37,7 @@ const createAutomaticTouristProfile = async (firebaseUser) => {
                 email: email,
                 profilePicture: picture || null
             },
-            currentLocation: {
-                type: 'Point',
-                coordinates: [null, null],
-                timestamp: new Date(),
-                accuracy: null,
-                address: 'Location not set - please update'
-            },
+            // Note: currentLocation omitted - will be set when first location update is received
             safetyScore: 75,
             status: 'active',
             profileCompletionStage: 'initial', 
