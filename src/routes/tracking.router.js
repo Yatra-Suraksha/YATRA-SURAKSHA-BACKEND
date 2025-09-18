@@ -26,7 +26,8 @@ import {
     validateGeofenceExists,
     sanitizeInput,
     validatePagination,
-    validateLocationHistoryParams
+    validateLocationHistoryParams,
+    validateTouristForLocationUpdate
 } from '../middlewares/validation.middleware.js'
 import { 
     validateGeofenceData 
@@ -36,16 +37,14 @@ const router = Router()
 router.use(sanitizeInput)
 
 router.post('/location/update/me', 
-    verifyFirebaseToken,
     validateCoordinates, 
-    validateOrCreateTourist, 
+    validateTouristForLocationUpdate,
     updateLocation
 )
 router.post('/location/update', 
-    verifyFirebaseToken,
     validateObjectId('touristId'), 
     validateCoordinates, 
-    validateTouristExists, 
+    validateTouristForLocationUpdate, 
     updateLocation
 )
 router.get('/location/current/me', 

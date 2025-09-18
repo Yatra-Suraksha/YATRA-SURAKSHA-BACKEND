@@ -430,3 +430,34 @@ export const cleanupOrphanedRecords = async () => {
         console.error('❌ Error during orphaned records cleanup:', error);
     }
 };
+
+// Validate tourist exists for location updates without authentication
+export const validateTouristForLocationUpdate = async (req, res, next) => {
+    try {
+        const touristId = req.body.touristId;
+        
+        if (!touristId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Tourist ID is required for location update'
+            });
+        }
+
+        const tourist = await Tourist.findById(touristId);
+        if (!tourist) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tourist not found'
+            });
+        }
+
+        req.tourist = tourist;
+        next();
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Error validating tourist for location update',
+            error: error.message
+        });
+    }
+};
